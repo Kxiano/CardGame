@@ -1,0 +1,355 @@
+.card {
+    position: relative;
+    border-radius: 8px;
+    box-shadow:
+        0 2px 4px rgba(0, 0, 0, 0.2),
+        0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+}
+
+.cardSm {
+    width: 70px;
+    height: 98px;
+    font-size: 0.85rem;
+}
+
+.cardMd {
+    width: 90px;
+    height: 126px;
+    font-size: 1rem;
+}
+
+.cardLg {
+    width: 110px;
+    height: 154px;
+    font-size: 1.2rem;
+}
+
+.faceUp {
+    background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
+}
+
+.faceDown {
+    background: linear-gradient(135deg, #1a3a6e 0%, #0d1f3c 100%);
+}
+
+.red {
+    color: #e63946;
+}
+
+.black {
+    color: #1d1d1d;
+}
+
+.highlighted {
+    box-shadow:
+        0 0 0 3px #d4af37,
+        0 0 20px rgba(212, 175, 55, 0.5);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.clickable {
+    cursor: pointer;
+}
+
+.clickable:hover {
+    transform: translateY(-4px);
+    box-shadow:
+        0 4px 8px rgba(0, 0, 0, 0.3),
+        0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.corner {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.cornerTop {
+    top: 4px;
+    left: 4px;
+}
+
+.cornerBottom {
+    bottom: 4px;
+    right: 4px;
+    transform: rotate(180deg);
+}
+
+.cornerValue {
+    font-weight: 700;
+}
+
+.cornerSuit {
+    font-size: 0.8em;
+}
+
+/* Card Body - main content area */
+.cardBody {
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    right: 10%;
+    bottom: 20%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ace card styling */
+.aceCenter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.aceSuit {
+    font-size: 3em;
+}
+
+.cardLg .aceSuit {
+    font-size: 3.5em;
+}
+
+.cardSm .aceSuit {
+    font-size: 2.5em;
+}
+
+/* Face card styling */
+.faceCardCenter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+}
+
+.faceSymbol {
+    font-size: 1.8em;
+}
+
+.cardLg .faceSymbol {
+    font-size: 2.2em;
+}
+
+.cardSm .faceSymbol {
+    font-size: 1.4em;
+}
+
+.faceDecorations {
+    display: flex;
+    gap: 4px;
+}
+
+.faceSuit {
+    font-size: 0.6em;
+}
+
+/* Pip Grid for number cards */
+.pipGrid {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.pip {
+    position: absolute;
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+.cardLg .pip {
+    font-size: 1.4em;
+}
+
+.cardSm .pip {
+    font-size: 0.9em;
+}
+
+.pipInverted {
+    transform: rotate(180deg);
+}
+
+/* Pip positions */
+.center_single {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 2em;
+}
+
+.top_center {
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.bottom_center {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.middle_center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.top_left {
+    top: 0;
+    left: 15%;
+}
+
+.top_right {
+    top: 0;
+    right: 15%;
+}
+
+.bottom_left {
+    bottom: 0;
+    left: 15%;
+}
+
+.bottom_right {
+    bottom: 0;
+    right: 15%;
+}
+
+.mid_left {
+    top: 50%;
+    left: 15%;
+    transform: translateY(-50%);
+}
+
+.mid_right {
+    top: 50%;
+    right: 15%;
+    transform: translateY(-50%);
+}
+
+.mid_top_center {
+    top: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.mid_bottom_center {
+    bottom: 25%;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.upper_mid_left {
+    top: 30%;
+    left: 15%;
+}
+
+.upper_mid_right {
+    top: 30%;
+    right: 15%;
+}
+
+.lower_mid_left {
+    bottom: 30%;
+    left: 15%;
+}
+
+.lower_mid_right {
+    bottom: 30%;
+    right: 15%;
+}
+
+.back {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.backPattern {
+    width: 80%;
+    height: 80%;
+    background:
+        repeating-linear-gradient(45deg,
+            transparent,
+            transparent 3px,
+            rgba(255, 255, 255, 0.1) 3px,
+            rgba(255, 255, 255, 0.1) 6px),
+        repeating-linear-gradient(-45deg,
+            transparent,
+            transparent 3px,
+            rgba(255, 255, 255, 0.1) 3px,
+            rgba(255, 255, 255, 0.1) 6px);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+.placeholder {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+}
+
+.placeholderInner {
+    width: 100%;
+    height: 100%;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        box-shadow:
+            0 0 0 3px #d4af37,
+            0 0 20px rgba(212, 175, 55, 0.5);
+    }
+
+    50% {
+        box-shadow:
+            0 0 0 5px #d4af37,
+            0 0 30px rgba(212, 175, 55, 0.7);
+    }
+}
+
+/* Mobile responsive cards */
+@media (max-width: 480px) {
+    .cardSm {
+        width: 50px;
+        height: 70px;
+        font-size: 0.7rem;
+    }
+
+    .cardMd {
+        width: 60px;
+        height: 84px;
+        font-size: 0.8rem;
+    }
+
+    .cardLg {
+        width: 70px;
+        height: 98px;
+        font-size: 0.9rem;
+    }
+
+    .pip {
+        font-size: 0.8em;
+    }
+
+    .aceSuit {
+        font-size: 1.8em;
+    }
+
+    .faceSymbol {
+        font-size: 1.2em;
+    }
+}
