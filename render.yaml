@@ -10,10 +10,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_SOCKET_URL
-        fromService:
-          type: web
-          name: xerekinha-server
-          property: url
+        sync: false  # Set this manually after server deploys
 
   # Socket.IO Server
   - type: web
@@ -28,7 +25,4 @@ services:
       - key: PORT
         value: "10000"
       - key: CLIENT_URL
-        fromService:
-          type: web
-          name: xerekinha-frontend
-          property: url
+        sync: false  # Set this manually after frontend deploys
