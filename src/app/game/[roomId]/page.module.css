@@ -79,6 +79,54 @@
     }
 }
 
+/* Phase-specific layouts */
+
+/* Questions Phase - Desktop: side-by-side pyramid and questions */
+.questionsPhase .tableArea {
+    flex-direction: row;
+    justify-content: center;
+    gap: 48px;
+}
+
+.questionsPhase .pyramidSection {
+    order: 2;
+}
+
+.questionsPhase .questionSection {
+    order: 1;
+}
+
+/* Revelation Phase - Wider players panel */
+.revelationPhase {
+    grid-template-columns: 420px 1fr;
+}
+
+/* Mobile overrides for phases */
+@media (max-width: 1024px) {
+
+    /* Questions Phase Mobile - reorder sections */
+    .questionsPhase .tableArea {
+        flex-direction: column;
+    }
+
+    .questionsPhase .questionSection {
+        order: 1;
+    }
+
+    .questionsPhase .playersPanel {
+        order: 2;
+    }
+
+    .questionsPhase .pyramidSection {
+        order: 3;
+    }
+
+    /* Revelation Phase Mobile - normal width */
+    .revelationPhase {
+        grid-template-columns: 1fr;
+    }
+}
+
 /* Panel Styles */
 .playersPanel,
 .leaderboardPanel {

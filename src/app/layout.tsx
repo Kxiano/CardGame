@@ -10,6 +10,10 @@ export const metadata: Metadata = {
   description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
   keywords: ["card game", "drinking game", "multiplayer", "party game", "xerekinha"],
   authors: [{ name: "Xerekinha Team" }],
+  icons: {
+    icon: "/favicon.png",
+    apple: "/favicon.png",
+  },
   openGraph: {
     title: "Xerekinha - The Ultimate Drinking Card Game",
     description: "A multiplayer drinking card game for 2-10 players",

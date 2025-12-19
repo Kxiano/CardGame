@@ -169,7 +169,7 @@ export default function GamePage() {
         </div>
       </header>
 
-      <div className={styles.gameArea}>
+      <div className={`${styles.gameArea} ${gameState.phase === 'questions' ? styles.questionsPhase : ''} ${gameState.phase === 'revelation' ? styles.revelationPhase : ''}`}>
         {/* Left Panel - Player Hands */}
         <aside className={styles.playersPanel}>
           <h3 className={styles.panelTitle}>{t('game.otherPlayers')}</h3>
