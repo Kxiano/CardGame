@@ -81,11 +81,11 @@
 
 /* Phase-specific layouts */
 
-/* Questions Phase - Desktop: side-by-side pyramid and questions */
+/* Questions Phase - Desktop: side-by-side with space-evenly */
 .questionsPhase .tableArea {
     flex-direction: row;
-    justify-content: center;
-    gap: 48px;
+    justify-content: space-evenly;
+    gap: 24px;
 }
 
 .questionsPhase .pyramidSection {
@@ -96,24 +96,24 @@
     order: 1;
 }
 
-/* Revelation Phase - Wider players panel */
+/* Revelation Phase - 30% wider players panel (320px * 1.3 = 416px) */
 .revelationPhase {
-    grid-template-columns: 420px 1fr;
+    grid-template-columns: 416px 1fr;
 }
 
 /* Mobile overrides for phases */
 @media (max-width: 1024px) {
 
-    /* Questions Phase Mobile - reorder sections */
+    /* Questions Phase Mobile - reorder: players, questions, pyramid */
     .questionsPhase .tableArea {
         flex-direction: column;
     }
 
-    .questionsPhase .questionSection {
+    .questionsPhase .playersPanel {
         order: 1;
     }
 
-    .questionsPhase .playersPanel {
+    .questionsPhase .questionSection {
         order: 2;
     }
 
@@ -742,6 +742,24 @@
 .drinkEmoji {
     font-size: 5rem;
     animation: shake 0.3s ease-in-out infinite;
+}
+
+.drinkCardPreview {
+    margin: 8px 0;
+    animation: cardReveal 0.5s ease-out;
+    filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.5));
+}
+
+@keyframes cardReveal {
+    from {
+        transform: scale(0.5) rotateY(180deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotateY(0deg);
+        opacity: 1;
+    }
 }
 
 .drinkAmount {

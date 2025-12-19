@@ -107,6 +107,7 @@ export interface DrinkEvent {
   amount: number;
   reason: string;
   timestamp: number;
+  card?: Card; // The card that triggered this drink (for pyramid reveal)
 }
 
 export interface Room {

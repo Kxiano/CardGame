@@ -492,6 +492,15 @@ export default function GamePage() {
         <div className={styles.drinkOverlay}>
           <div className={styles.drinkContent}>
             <div className={styles.drinkEmoji}>🍺</div>
+            {/* Show the revealed card if present */}
+            {pendingDrink.card && (
+              <div className={styles.drinkCardPreview}>
+                <PlayingCard
+                  card={{...pendingDrink.card, faceUp: true}}
+                  size="md"
+                />
+              </div>
+            )}
             <div className={styles.drinkAmount}>{pendingDrink.amount}</div>
             <div className={styles.drinkLabel}>
               {pendingDrink.amount === 1 

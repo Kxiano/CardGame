@@ -330,6 +330,7 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
           ? `Matched card in Row ${row.rowNumber}!`
           : `No matches - everyone drinks!`,
         timestamp: Date.now(),
+        card: card, // Include the revealed card for overlay display
       });
     } else {
       // Give drinks to distribute

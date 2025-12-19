@@ -16,8 +16,22 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Xerekinha - The Ultimate Drinking Card Game",
-    description: "A multiplayer drinking card game for 2-10 players",
+    description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
     type: "website",
+    images: [
+      {
+        url: "/favicon.png",
+        width: 512,
+        height: 512,
+        alt: "Xerekinha - Cards, Beer, and Truco Fire",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Xerekinha - The Ultimate Drinking Card Game",
+    description: "A multiplayer drinking card game for 2-10 players",
+    images: ["/favicon.png"],
   },
 };
 
