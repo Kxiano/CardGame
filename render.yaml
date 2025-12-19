@@ -1,0 +1,34 @@
+services:
+  # Next.js Frontend
+  - type: web
+    name: xerekinha-frontend
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SOCKET_URL
+        fromService:
+          type: web
+          name: xerekinha-server
+          property: url
+
+  # Socket.IO Server
+  - type: web
+    name: xerekinha-server
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npx tsx src/server/index.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: xerekinha-frontend
+          property: url
