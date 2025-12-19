@@ -1,8 +1,8 @@
-# 🃏 Xerekinha - The Ultimate Drinking Card Game
+# 🃏 Xerekinha - The Ultimate Online Card Game
 
-A real-time multiplayer drinking card game for 2-10 players, built with Next.js and Socket.IO.
+A real-time multiplayer card game for 2-10 players, built with Next.js and Socket.IO.
 
-![Game Screenshot](docs/screenshot.png)
+
 
 ## 🎮 Features
 
