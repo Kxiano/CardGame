@@ -1,22 +1,28 @@
 services:
-  # Next.js Frontend
+  # ========================
+  # PRODUCTION (main branch)
+  # ========================
+  
+  # Next.js Frontend - Production
   - type: web
     name: xerekinha-frontend
     runtime: node
     plan: free
+    branch: main
     buildCommand: npm install && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_SOCKET_URL
-        sync: false  # Set this manually after server deploys
+        sync: false  # Set to xerekinha-server URL
 
-  # Socket.IO Server
+  # Socket.IO Server - Production
   - type: web
     name: xerekinha-server
     runtime: node
     plan: free
+    branch: main
     buildCommand: npm install
     startCommand: npx tsx src/server/index.ts
     envVars:
@@ -25,4 +31,38 @@ services:
       - key: PORT
         value: "10000"
       - key: CLIENT_URL
-        sync: false  # Set this manually after frontend deploys
+        sync: false  # Set to xerekinha-frontend URL
+
+  # ========================
+  # PREVIEW (develop branch)
+  # ========================
+
+  # Next.js Frontend - Preview
+  - type: web
+    name: xerekinha-preview-frontend
+    runtime: node
+    plan: free
+    branch: develop
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_SOCKET_URL
+        sync: false  # Set to xerekinha-preview-server URL
+
+  # Socket.IO Server - Preview
+  - type: web
+    name: xerekinha-preview-server
+    runtime: node
+    plan: free
+    branch: develop
+    buildCommand: npm install
+    startCommand: npx tsx src/server/index.ts
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: CLIENT_URL
+        sync: false  # Set to xerekinha-preview-frontend URL
