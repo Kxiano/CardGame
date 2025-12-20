@@ -30,6 +30,28 @@
     background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
 }
 
+/* SVG card face - no background, image fills the card */
+.faceUpSvg {
+    background: transparent;
+    overflow: hidden;
+}
+
+/* Cardmeister web component cards */
+.faceUpCardmeister {
+    background: transparent;
+    overflow: visible;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cardImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 2px;
+}
+
 .faceDown {
     background: linear-gradient(135deg, #1a3a6e 0%, #0d1f3c 100%);
 }
