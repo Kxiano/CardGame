@@ -9,7 +9,10 @@
         "enterNickname": "Írd be a beceneved",
         "join": "Csatlakozás",
         "cancel": "Mégse",
-        "playerCount": "2-10 Játékos"
+        "playerCount": "2-10 Játékos",
+        "browseGames": "Játékok Böngészése",
+        "noLobbiesAvailable": "Nincs elérhető játék",
+        "createYourOwn": "Hozz létre egy szobát és hívd meg a barátaidat!"
     },
     "lobby": {
         "title": "Váróterem",
@@ -42,6 +45,7 @@
         "question": "Kérdés {current}/{total}",
         "round": "Kör {current}/{total}",
         "yourHand": "A Kezedben",
+        "theirHand": "{playerName} Keze",
         "otherPlayers": "Többi Játékos",
         "pyramid": "Piramis",
         "row": "{number}. Sor",
@@ -57,7 +61,26 @@
         "selectPlayer": "Válassz játékos(oka)t a kortyok kiosztásához",
         "giveDrinks": "Kortyok Kiosztása",
         "leaderboard": "Ranglista",
-        "totalDrinks": "Összes Korty"
+        "totalDrinks": "Összes Korty",
+        "playerAnswered": "{name} válaszolt: {answer}",
+        "chooseTruco": "Válassz: Truco! vagy Passz",
+        "correctResult": "✓ Helyes!",
+        "wrongResult": "✗ Hibás!"
+    },
+    "answers": {
+        "odd": "Páratlan",
+        "even": "Páros",
+        "higher": "Magasabb",
+        "lower": "Alacsonyabb",
+        "equal": "Egyenlő",
+        "inside": "Belül",
+        "outside": "Kívül",
+        "red": "Piros",
+        "black": "Fekete",
+        "hearts": "Kőr",
+        "diamonds": "Káró",
+        "clubs": "Treff",
+        "spades": "Pikk"
     },
     "endGame": {
         "title": "Játék Vége!",
@@ -105,11 +128,22 @@
         "drinkConfirm": "Megittam! 🍻",
         "youAnsweredCorrectly": "Helyesen válaszoltál!",
         "youAnsweredIncorrectly": "Hibásan válaszoltál!",
-        "othersAnsweredCorrectly": "A többiek helyesen válaszoltak!",
+        "othersAnsweredCorrectly": "{playerName} helyesen válaszolt!",
         "trucoPenalty": "+{count} Truco büntetés",
-        "trucoBackfired": "A Truco visszaütött! Eltalálták.",
-        "sharingDrinks": "Valaki kortyokat oszt!",
+        "trucoBackfired": "A Truco visszaütött! {playerName} eltalálta.",
+        "sharingDrinks": "{playerName} kortyokat oszt!",
         "matchedCard": "Párosított kártya a piramisban!",
-        "noMatches": "Nincs egyezés - mindenki iszik!"
+        "noMatches": "Nincs egyezés - mindenki iszik!",
+        "drinksToGive": "korty osztásra",
+        "giftRowMatch": "Párosítottál egy ajándék sor kártyát!",
+        "selectPlayers": "Válaszd ki kiknek adsz kortyot",
+        "giveDrinks": "Kortyok Adása",
+        "yourAnswer": "A válaszod",
+        "theirAnswer": "{playerName} válasza",
+        "gettingExcited": "{playerName} izgul! 🔥",
+        "receivedGift": "{playerName} megosztja veled a szeretetet!",
+        "hadMyDrinks": "Megittam! 🍺",
+        "avoidEyeContact": "Kerüld {playerName} tekintetét 😂",
+        "avoidEyeContactThem": "Kerüld a tekintetüket 😂"
     }
 }

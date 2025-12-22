@@ -101,13 +101,15 @@ export interface PendingDrink {
 
 export interface DrinkEvent {
   id: string;
-  type: 'take' | 'distribute';
+  type: 'take' | 'distribute' | 'excited'; // excited = "getting excited" overlay for others
   targetPlayerIds: string[];
   sourcePlayerId?: string;
+  sourcePlayerName?: string; // Name of player who triggered the event
   amount: number;
   reason: string;
   timestamp: number;
-  card?: Card; // The card that triggered this drink (for pyramid reveal)
+  card?: Card; // The card that triggered this drink
+  answer?: string; // The answer that triggered this drink (for question phase)
 }
 
 export interface Room {
@@ -130,6 +132,15 @@ export interface ServerToClientEvents {
   'game:questionResult': (result: GameState['lastAnswer']) => void;
   'game:replayVoteRequest': () => void;
   'game:replayResult': (startNewGame: boolean, votedYes: string[]) => void;
+  'lobbies:update': (lobbies: LobbyInfo[]) => void;
+}
+
+export interface LobbyInfo {
+  roomId: string;
+  hostName: string;
+  playerCount: number;
+  maxPlayers: number;
+  difficulty: Difficulty;
 }
 
 export interface ClientToServerEvents {
@@ -149,4 +160,5 @@ export interface ClientToServerEvents {
   'game:distributeDrinks': (targetPlayerIds: string[], amount: number) => void;
   'game:requestReplay': () => void;
   'game:voteReplay': (vote: boolean) => void;
+  'lobbies:list': (callback: (lobbies: LobbyInfo[]) => void) => void;
 }
