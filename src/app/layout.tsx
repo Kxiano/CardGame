@@ -7,6 +7,7 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://xerekinha.onrender.com'),
   title: "Xerekinha - The Ultimate Drinking Card Game",
   description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
   keywords: ["card game", "drinking game", "multiplayer", "party game", "xerekinha"],
@@ -19,17 +20,18 @@ export const metadata: Metadata = {
     title: "Xerekinha - The Ultimate Drinking Card Game",
     description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
     type: "website",
+    siteName: "Xerekinha",
     images: [
       {
         url: "/favicon.png",
         width: 512,
         height: 512,
-        alt: "Xerekinha - Cards, Beer, and Truco Fire",
+        alt: "Xerekinha - The Ultimate Drinking Card Game",
       },
     ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Xerekinha - The Ultimate Drinking Card Game",
     description: "A multiplayer drinking card game for 2-10 players",
     images: ["/favicon.png"],
