@@ -1,24 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { useSocket } from '@/lib/socket';
 import { useSound } from '@/lib/sound';
 import { LanguageSelector, SoundToggle, Modal } from '@/components/ui';
+import { LobbyInfo } from '@/lib/game-engine/types';
 import styles from './page.module.css';
 
 export default function Home() {
   const { t } = useI18n();
   const router = useRouter();
-  const { createRoom, joinRoom, isConnected, error, clearError } = useSocket();
+  const { createRoom, joinRoom, isConnected, error, clearError, getOpenLobbies, onLobbiesUpdate } = useSocket();
   const { playSound } = useSound();
   
   const [showJoinModal, setShowJoinModal] = useState(false);
+  const [showBrowseModal, setShowBrowseModal] = useState(false);
   const [roomCode, setRoomCode] = useState('');
   const [nickname, setNickname] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [lobbies, setLobbies] = useState<LobbyInfo[]>([]);
+
+  // Fetch lobbies when browse modal opens
+  useEffect(() => {
+    if (showBrowseModal) {
+      getOpenLobbies().then(setLobbies);
+    }
+  }, [showBrowseModal, getOpenLobbies]);
+
+  // Listen for real-time lobby updates
+  useEffect(() => {
+    if (!showBrowseModal) return;
+    
+    const unsubscribe = onLobbiesUpdate((updatedLobbies) => {
+      setLobbies(updatedLobbies);
+    });
+    
+    return unsubscribe;
+  }, [showBrowseModal, onLobbiesUpdate]);
 
   const handleCreateRoom = async () => {
     if (!nickname.trim()) {
@@ -66,6 +87,29 @@ export default function Home() {
     setIsLoading(false);
   };
 
+  const handleQuickJoin = async (lobbyRoomId: string) => {
+    if (!nickname.trim()) {
+      setLocalError('Please enter a nickname first');
+      setShowBrowseModal(false);
+      return;
+    }
+    
+    playSound('click');
+    setIsLoading(true);
+    setLocalError('');
+    
+    const success = await joinRoom(lobbyRoomId, nickname.trim());
+    
+    if (success) {
+      router.push(`/lobby/${lobbyRoomId}`);
+    } else {
+      setLocalError(error || 'Failed to join room');
+      setShowBrowseModal(false);
+    }
+    
+    setIsLoading(false);
+  };
+
   const handleOpenJoinModal = () => {
     playSound('click');
     setShowJoinModal(true);
@@ -76,6 +120,16 @@ export default function Home() {
     setShowJoinModal(false);
     setRoomCode('');
     setLocalError('');
+  };
+
+  const handleOpenBrowseModal = () => {
+    playSound('click');
+    setShowBrowseModal(true);
+    setLocalError('');
+  };
+
+  const handleCloseBrowseModal = () => {
+    setShowBrowseModal(false);
   };
 
   return (
@@ -134,6 +188,14 @@ export default function Home() {
             disabled={isLoading || !isConnected}
           >
             {t('home.joinRoom')}
+          </button>
+
+          <button 
+            className={`btn btn-success btn-lg ${styles.mainButton}`}
+            onClick={handleOpenBrowseModal}
+            disabled={isLoading || !isConnected}
+          >
+            🎮 {t('home.browseGames')}
           </button>
           
           <button 
@@ -197,6 +259,49 @@ export default function Home() {
               {isLoading ? t('common.loading') : t('home.join')}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Browse Games Modal */}
+      <Modal 
+        isOpen={showBrowseModal} 
+        onClose={handleCloseBrowseModal}
+        title={t('home.browseGames')}
+        size="md"
+      >
+        <div className={styles.browseContent}>
+          {lobbies.length === 0 ? (
+            <div className={styles.noLobbies}>
+              <p>🎲 {t('home.noLobbiesAvailable')}</p>
+              <p className={styles.noLobbiesHint}>{t('home.createYourOwn')}</p>
+            </div>
+          ) : (
+            <div className={styles.lobbyList}>
+              {lobbies.map((lobby) => (
+                <div key={lobby.roomId} className={styles.lobbyCard}>
+                  <div className={styles.lobbyInfo}>
+                    <span className={styles.lobbyHost}>{lobby.hostName}</span>
+                    <span className={styles.lobbyCode}>{lobby.roomId}</span>
+                  </div>
+                  <div className={styles.lobbyMeta}>
+                    <span className={styles.lobbyPlayers}>
+                      👥 {lobby.playerCount}/{lobby.maxPlayers}
+                    </span>
+                    <span className={styles.lobbyDifficulty}>
+                      {lobby.difficulty === 'easy' ? '🟢' : lobby.difficulty === 'normal' ? '🟡' : '🔴'} {lobby.difficulty}
+                    </span>
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleQuickJoin(lobby.roomId)}
+                    disabled={isLoading}
+                  >
+                    {t('home.join')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </Modal>
     </main>
