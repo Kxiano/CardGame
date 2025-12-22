@@ -533,7 +533,11 @@ function broadcastLobbies(io: SocketIOServer) {
 const httpServer = createServer();
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://xerekinha-frontend.onrender.com',
+      'https://game.cassianosantos.com'
+    ],
     methods: ['GET', 'POST'],
   },
 });

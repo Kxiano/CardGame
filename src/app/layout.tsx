@@ -7,7 +7,7 @@ import { Providers } from "@/components/Providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://xerekinha.onrender.com'),
+  metadataBase: new URL('https://xerekinha-frontend.onrender.com'),
   title: "Xerekinha - The Ultimate Drinking Card Game",
   description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
   keywords: ["card game", "drinking game", "multiplayer", "party game", "xerekinha"],

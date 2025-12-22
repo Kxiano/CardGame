@@ -528,7 +528,10 @@ export default function GamePage() {
         // Get translated reason
         const getTranslatedReason = () => {
           if (isExcited) {
-            return t('notifications.gettingExcited', { playerName: playerName || 'Someone' });
+            // amount > 1 means multiple players are excited
+            return pendingDrink.amount > 1
+              ? t('notifications.gettingExcitedPlural', { playerName: playerName || 'Someone' })
+              : t('notifications.gettingExcited', { playerName: playerName || 'Someone' });
           } else if (isReceivedGift) {
             return t('notifications.receivedGift', { playerName: playerName || 'Someone' });
           } else if (isTrucoBackfired) {

@@ -141,6 +141,7 @@
         "yourAnswer": "A válaszod",
         "theirAnswer": "{playerName} válasza",
         "gettingExcited": "{playerName} izgul! 🔥",
+        "gettingExcitedPlural": "{playerName} izogulnak! 🔥",
         "receivedGift": "{playerName} megosztja veled a szeretetet!",
         "hadMyDrinks": "Megittam! 🍺",
         "avoidEyeContact": "Kerüld {playerName} tekintetét 😂",

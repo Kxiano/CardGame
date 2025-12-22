@@ -141,6 +141,7 @@
         "yourAnswer": "Your answer",
         "theirAnswer": "{playerName}'s answer",
         "gettingExcited": "{playerName} is getting excited! 🔥",
+        "gettingExcitedPlural": "{playerName} are getting excited! 🔥",
         "receivedGift": "{playerName} is sharing love with you!",
         "hadMyDrinks": "I've had my drinks! 🍺",
         "avoidEyeContact": "Avoid eye contact with {playerName} 😂",
