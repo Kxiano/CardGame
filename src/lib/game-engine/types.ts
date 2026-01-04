@@ -163,5 +163,6 @@ export interface ClientToServerEvents {
   'game:distributeDrinks': (targetPlayerIds: string[], amount: number) => void;
   'game:requestReplay': () => void;
   'game:voteReplay': (vote: boolean) => void;
+  'game:reorderPlayers': (sourceIndex: number, destinationIndex: number) => void;
   'lobbies:list': (callback: (lobbies: LobbyInfo[]) => void) => void;
 }

@@ -47,6 +47,7 @@ interface SocketContextType {
   distributeDrinks: (targetPlayerIds: string[], amount: number) => void;
   requestReplay: () => void;
   voteReplay: (vote: boolean) => void;
+  reorderPlayers: (sourceIndex: number, destinationIndex: number) => void;
   // Lobby browser
   getOpenLobbies: () => Promise<LobbyInfo[]>;
   onLobbiesUpdate: (callback: (lobbies: LobbyInfo[]) => void) => () => void;
@@ -89,7 +90,12 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
   useEffect(() => {
     // Initialize socket connection
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    let socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+
+    if (!socketUrl) {
+      socketUrl = `${window.location.protocol}//${window.location.hostname}:3001`;
+    }
+
     const newSocket = io(socketUrl, {
       autoConnect: true,
       reconnection: true,
@@ -100,15 +106,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
     newSocket.on('connect', () => {
       setIsConnected(true);
       
-      // Only attempt reconnection if THIS tab had an active session
-      // We use sessionStorage (tab-specific) to track if we were previously connected
-      const wasConnectedInThisTab = sessionStorage.getItem('xerekinha-tab-active');
-      const storedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      // Only attempt reconnection if there is an active session in this tab
+      const storedSession = sessionStorage.getItem(SESSION_STORAGE_KEY);
       
-      // Only reconnect if:
-      // 1. There's a stored session in localStorage
-      // 2. This specific tab was previously connected (or it's a page refresh)
-      if (storedSession && wasConnectedInThisTab) {
+      if (storedSession) {
         try {
           const session: StoredSession = JSON.parse(storedSession);
           setIsReconnecting(true);
@@ -122,15 +123,13 @@ export function SocketProvider({ children }: SocketProviderProps) {
               console.log('Reconnected to session successfully');
             } else {
               // Session invalid, clear it
-              localStorage.removeItem(SESSION_STORAGE_KEY);
-              sessionStorage.removeItem('xerekinha-tab-active');
+              sessionStorage.removeItem(SESSION_STORAGE_KEY);
               sessionTokenRef.current = null;
               console.log('Session expired or invalid:', error);
             }
           });
         } catch {
-          localStorage.removeItem(SESSION_STORAGE_KEY);
-          sessionStorage.removeItem('xerekinha-tab-active');
+          sessionStorage.removeItem(SESSION_STORAGE_KEY);
           sessionTokenRef.current = null;
         }
       }
@@ -234,13 +233,11 @@ export function SocketProvider({ children }: SocketProviderProps) {
           // Store session for reconnection
           if (sessionToken) {
             sessionTokenRef.current = sessionToken;
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
               token: sessionToken,
               roomId,
               nickname,
             }));
-            // Mark this tab as having an active session (for reconnection on refresh)
-            sessionStorage.setItem('xerekinha-tab-active', 'true');
           }
           resolve(roomId);
         }
@@ -260,13 +257,11 @@ export function SocketProvider({ children }: SocketProviderProps) {
           // Store session for reconnection
           if (sessionToken) {
             sessionTokenRef.current = sessionToken;
-            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+            sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
               token: sessionToken,
               roomId: roomId.toUpperCase(),
               nickname,
             }));
-            // Mark this tab as having an active session (for reconnection on refresh)
-            sessionStorage.setItem('xerekinha-tab-active', 'true');
           }
           resolve(true);
         }
@@ -278,8 +273,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
     if (!socket) return;
     socket.emit('room:leave');
     // Clear session on intentional leave
-    localStorage.removeItem(SESSION_STORAGE_KEY);
-    sessionStorage.removeItem('xerekinha-tab-active');
+    sessionStorage.removeItem(SESSION_STORAGE_KEY);
     sessionTokenRef.current = null;
     setGameState(null);
     setCurrentPlayer(null);
@@ -424,6 +418,14 @@ export function SocketProvider({ children }: SocketProviderProps) {
     distributeDrinks,
     requestReplay,
     voteReplay,
+    reorderPlayers: useCallback((sourceIndex: number, destinationIndex: number) => {
+      console.log('SocketContext reorderPlayers', { sourceIndex, destinationIndex, socketId: socket?.id });
+      if (!socket) {
+        console.error('Socket not initialized');
+        return;
+      }
+      socket.emit('game:reorderPlayers', sourceIndex, destinationIndex);
+    }, [socket]),
     getOpenLobbies,
     onLobbiesUpdate,
     onDrinkEvent,

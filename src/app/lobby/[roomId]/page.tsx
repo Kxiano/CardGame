@@ -23,6 +23,7 @@ export default function LobbyPage() {
     setDifficulty, 
     setTruco, 
     startGame,
+    reorderPlayers,
     error 
   } = useSocket();
   const { playSound } = useSound();
@@ -106,6 +107,21 @@ export default function LobbyPage() {
     setTruco(!gameState?.trucoEnabled);
   };
 
+  const handleReorder = (index: number, direction: 'up' | 'down') => {
+    console.log('handleReorder called', { index, direction, gameState });
+    if (!gameState) return;
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    console.log('Calculated newIndex:', newIndex);
+    
+    if (newIndex >= 0 && newIndex < gameState.players.length) {
+      console.log('Valid move, calling reorderPlayers', { index, newIndex });
+      playSound('click');
+      reorderPlayers(index, newIndex);
+    } else {
+      console.log('Invalid move', { newIndex, totalPlayers: gameState.players.length });
+    }
+  };
+
   if (!isConnected || !gameState) {
     return (
       <div className={styles.loading}>
@@ -166,11 +182,34 @@ export default function LobbyPage() {
               </h2>
               
               <div className={styles.playersList}>
-                {gameState.players.map((player) => (
+                {gameState.players.map((player, index) => (
                   <div 
                     key={player.id} 
                     className={`player-item ${player.id === currentPlayer?.id ? styles.currentPlayer : ''}`}
+                    style={{ position: 'relative' }}
                   >
+                    {/* Reorder Buttons (Dealer Only) */}
+                    {isDealer && gameState.players.length > 1 && (
+                      <div style={{ display: 'flex', flexDirection: 'column', marginRight: '8px', gap: '2px' }}>
+                        <button
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => handleReorder(index, 'up')}
+                          disabled={index === 0}
+                          style={{ padding: '0px 4px', lineHeight: 1, minHeight: 'auto', visibility: index === 0 ? 'hidden' : 'visible' }}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => handleReorder(index, 'down')}
+                          disabled={index === gameState.players.length - 1}
+                          style={{ padding: '0px 4px', lineHeight: 1, minHeight: 'auto', visibility: index === gameState.players.length - 1 ? 'hidden' : 'visible' }}
+                        >
+                          ▼
+                        </button>
+                      </div>
+                    )}
+
                     <div className="player-avatar">
                       {player.nickname.charAt(0).toUpperCase()}
                     </div>
