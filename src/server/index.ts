@@ -542,30 +542,15 @@ function broadcastLobbies(io: SocketIOServer) {
 const httpServer = createServer();
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: (requestOrigin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'https://xerekinha-frontend.onrender.com',
-        'https://xerekinha-preview-frontend.onrender.com',
-        'https://game.cassianosantos.com'
-      ];
-
-      if (!requestOrigin) return callback(null, true);
-
-      if (allowedOrigins.indexOf(requestOrigin) !== -1) {
-        return callback(null, true);
-      }
-
-      const isLocal = requestOrigin.startsWith('http://192.168.')
-                      
-      if (isLocal) {
-        return callback(null, true);
-      }
-
-      callback(new Error('Not allowed by CORS'));
-    },
+    origin: [
+      'http://localhost:3000',
+      '*',
+      'http://192.168.1.253:3000',
+      'https://xerekinha-frontend.onrender.com',
+      'https://xerekinha-preview-frontend.onrender.com',
+      'https://game.cassianosantos.com'
+    ],
     methods: ['GET', 'POST'],
-    credentials: true,
   },
 });
 
@@ -980,45 +965,6 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
       }
     }
     
-    broadcastGameState(io, roomId);
-  });
-
-  socket.on('game:reorderPlayers', (sourceIndex, destinationIndex) => {
-    console.log('Server received game:reorderPlayers', { sourceIndex, destinationIndex, socketId: socket.id });
-    const roomId = playerRooms.get(socket.id);
-    if (!roomId) {
-        console.log('Room ID not found for socket', socket.id);
-        return;
-    }
-    
-    const room = rooms.get(roomId);
-    if (!room) {
-        console.log('Room not found', roomId);
-        return;
-    }
-    
-    const player = room.gameState.players.find(p => p.socketId === socket.id);
-    console.log('Player found:', player?.nickname, 'isDealer:', player?.isDealer);
-    
-    if (!player?.isDealer) {
-        console.log('Player is not dealer, ignoring reorder request');
-        return; 
-    }
-    
-    const players = room.gameState.players;
-    
-    // Validate indices
-    if (sourceIndex < 0 || sourceIndex >= players.length || 
-        destinationIndex < 0 || destinationIndex >= players.length) {
-        console.log('Invalid indices', { sourceIndex, destinationIndex, totalPlayers: players.length });
-      return;
-    }
-    
-    // Move player
-    const [movedPlayer] = players.splice(sourceIndex, 1);
-    players.splice(destinationIndex, 0, movedPlayer);
-    
-    console.log('Reorder successful, broadcasting new state');
     broadcastGameState(io, roomId);
   });
 

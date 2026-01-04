@@ -88,7 +88,7 @@ export default function LobbyPage() {
   };
 
   const handleToggleReady = () => {
-    playSound('click');
+    playSound('ready');
     setReady(!currentPlayer?.isReady);
   };
 
