@@ -9,7 +9,10 @@
         "enterNickname": "Enter Your Nickname",
         "join": "Join",
         "cancel": "Cancel",
-        "playerCount": "2-10 Players"
+        "playerCount": "2-10 Players",
+        "browseGames": "Browse Games",
+        "noLobbiesAvailable": "No open games available",
+        "createYourOwn": "Create a room and invite your friends!"
     },
     "lobby": {
         "title": "Game Lobby",
@@ -42,6 +45,7 @@
         "question": "Question {current} of {total}",
         "round": "Round {current} of {total}",
         "yourHand": "Your Hand",
+        "theirHand": "{playerName}'s Hand",
         "otherPlayers": "Other Players",
         "pyramid": "Pyramid",
         "row": "Row {number}",
@@ -57,7 +61,26 @@
         "selectPlayer": "Select player(s) to give drinks",
         "giveDrinks": "Give Drinks",
         "leaderboard": "Leaderboard",
-        "totalDrinks": "Total Drinks"
+        "totalDrinks": "Total Drinks",
+        "playerAnswered": "{name} answered: {answer}",
+        "chooseTruco": "Choose: Call Truco! or Pass",
+        "correctResult": "✓ Correct!",
+        "wrongResult": "✗ Wrong!"
+    },
+    "answers": {
+        "odd": "Odd",
+        "even": "Even",
+        "higher": "Higher",
+        "lower": "Lower",
+        "equal": "Equal",
+        "inside": "Inside",
+        "outside": "Outside",
+        "red": "Red",
+        "black": "Black",
+        "hearts": "Hearts",
+        "diamonds": "Diamonds",
+        "clubs": "Clubs",
+        "spades": "Spades"
     },
     "endGame": {
         "title": "Game Over!",
@@ -105,11 +128,23 @@
         "drinkConfirm": "I've had my drink! 🍻",
         "youAnsweredCorrectly": "You answered correctly!",
         "youAnsweredIncorrectly": "You answered incorrectly!",
-        "othersAnsweredCorrectly": "Others answered correctly!",
+        "othersAnsweredCorrectly": "{playerName} got it right!",
         "trucoPenalty": "+{count} Truco penalty",
-        "trucoBackfired": "Truco backfired! They got it right.",
-        "sharingDrinks": "Someone is sharing the love!",
+        "trucoBackfired": "Truco backfired! {playerName} got it right.",
+        "sharingDrinks": "{playerName} is sharing the love!",
         "matchedCard": "Matched card in pyramid!",
-        "noMatches": "No matches - everyone drinks!"
+        "noMatches": "No matches - everyone drinks!",
+        "drinksToGive": "drinks to give",
+        "giftRowMatch": "You matched a gift row card!",
+        "selectPlayers": "Select players to give drinks",
+        "giveDrinks": "Give Drinks",
+        "yourAnswer": "Your answer",
+        "theirAnswer": "{playerName}'s answer",
+        "gettingExcited": "{playerName} is getting excited! 🔥",
+        "gettingExcitedPlural": "{playerName} are getting excited! 🔥",
+        "receivedGift": "{playerName} is sharing love with you!",
+        "hadMyDrinks": "I've had my drinks! 🍺",
+        "avoidEyeContact": "Avoid eye contact with {playerName} 😂",
+        "avoidEyeContactThem": "Avoid eye contact with them 😂"
     }
 }

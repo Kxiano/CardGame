@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useI18n } from '@/lib/i18n';
 import { useSocket } from '@/lib/socket';
@@ -29,14 +29,38 @@ export default function LobbyPage() {
   const { showToast } = useToast();
   
   const [copied, setCopied] = useState(false);
+  const [showStartAnimation, setShowStartAnimation] = useState(false);
+  const [isFadingOut, setIsFadingOut] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Redirect to game when phase changes
+  // Navigate with fade-out transition
+  const navigateToGame = () => {
+    setIsFadingOut(true);
+    setTimeout(() => {
+      router.push(`/game/${roomId}`);
+    }, 500); // Wait for fade-out animation
+  };
+
+  // Redirect to game when phase changes (with animation)
   useEffect(() => {
     if (gameState?.phase === 'questions' || gameState?.phase === 'revelation') {
+      // Show animation first
+      setShowStartAnimation(true);
       playSound('bell');
-      router.push(`/game/${roomId}`);
+      
+      // Wait for video to finish (or timeout after 4s), then navigate with fade
+      const timeout = setTimeout(() => {
+        navigateToGame();
+      }, 4000); // 4 second max wait
+
+      return () => clearTimeout(timeout);
     }
   }, [gameState?.phase, roomId, router, playSound]);
+
+  // Handle video end - navigate with fade immediately
+  const handleVideoEnd = () => {
+    navigateToGame();
+  };
 
   // Show error toast
   useEffect(() => {
@@ -241,6 +265,21 @@ export default function LobbyPage() {
           </div>
         </div>
       </div>
+
+      {/* Game Start Animation Overlay */}
+      {showStartAnimation && (
+        <div className={`${styles.animationOverlay} ${isFadingOut ? styles.fadeOut : ''}`}>
+          <video
+            ref={videoRef}
+            src="/animations/game-start.webm"
+            autoPlay
+            muted
+            playsInline
+            onEnded={handleVideoEnd}
+            className={styles.animationVideo}
+          />
+        </div>
+      )}
     </main>
   );
 }

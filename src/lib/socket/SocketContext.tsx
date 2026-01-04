@@ -9,7 +9,8 @@ import {
   DrinkEvent,
   TrucoVote,
   ClientToServerEvents,
-  ServerToClientEvents 
+  ServerToClientEvents,
+  LobbyInfo
 } from '@/lib/game-engine/types';
 
 interface SocketContextType {
@@ -36,6 +37,9 @@ interface SocketContextType {
   distributeDrinks: (targetPlayerIds: string[], amount: number) => void;
   requestReplay: () => void;
   voteReplay: (vote: boolean) => void;
+  // Lobby browser
+  getOpenLobbies: () => Promise<LobbyInfo[]>;
+  onLobbiesUpdate: (callback: (lobbies: LobbyInfo[]) => void) => () => void;
   // Event handlers
   onDrinkEvent: (callback: (event: DrinkEvent) => void) => () => void;
   clearPendingDrink: () => void;
@@ -261,6 +265,43 @@ export function SocketProvider({ children }: SocketProviderProps) {
     setPendingDrink(null);
   }, []);
 
+  // Lobby browser methods
+  const getOpenLobbies = useCallback((): Promise<LobbyInfo[]> => {
+    return new Promise((resolve) => {
+      if (!socket) {
+        resolve([]);
+        return;
+      }
+      socket.emit('lobbies:list', (lobbies) => {
+        resolve(lobbies);
+      });
+    });
+  }, [socket]);
+
+  const lobbiesCallbacks = useRef<Set<(lobbies: LobbyInfo[]) => void>>(new Set());
+
+  const onLobbiesUpdate = useCallback((callback: (lobbies: LobbyInfo[]) => void) => {
+    lobbiesCallbacks.current.add(callback);
+    return () => {
+      lobbiesCallbacks.current.delete(callback);
+    };
+  }, []);
+
+  // Listen for lobbies updates
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handleLobbiesUpdate = (lobbies: LobbyInfo[]) => {
+      lobbiesCallbacks.current.forEach(cb => cb(lobbies));
+    };
+    
+    socket.on('lobbies:update', handleLobbiesUpdate);
+    
+    return () => {
+      socket.off('lobbies:update', handleLobbiesUpdate);
+    };
+  }, [socket]);
+
   const value: SocketContextType = {
     socket,
     isConnected,
@@ -283,6 +324,8 @@ export function SocketProvider({ children }: SocketProviderProps) {
     distributeDrinks,
     requestReplay,
     voteReplay,
+    getOpenLobbies,
+    onLobbiesUpdate,
     onDrinkEvent,
     clearPendingDrink,
     clearError,

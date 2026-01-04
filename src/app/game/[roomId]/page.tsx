@@ -325,31 +325,53 @@ export default function GamePage() {
               )}
 
               {/* Last Answer Display - only show card after Truco phase */}
-              {gameState.lastAnswer && !gameState.awaitingTruco && (
-                <div className={`${styles.lastAnswer} ${gameState.lastAnswer.correct ? styles.correct : styles.incorrect}`}>
-                  <p>
-                    <strong>{gameState.lastAnswer.playerName}</strong> answered: {gameState.lastAnswer.answer}
-                  </p>
-                  {gameState.lastAnswer.card && gameState.lastAnswer.card.faceUp && (
-                    <div className={styles.revealedCard}>
-                      <PlayingCard card={gameState.lastAnswer.card} size="lg" />
-                    </div>
-                  )}
-                  <p className={styles.answerResult}>
-                    {gameState.lastAnswer.correct ? '✓ Correct!' : '✗ Wrong!'}
-                  </p>
-                </div>
-              )}
+              {gameState.lastAnswer && !gameState.awaitingTruco && (() => {
+                // Translate the answer value
+                const answerKey = gameState.lastAnswer.answer.toLowerCase() as string;
+                const translatedAnswer = t(`answers.${answerKey}`) !== `answers.${answerKey}` 
+                  ? t(`answers.${answerKey}`) 
+                  : gameState.lastAnswer.answer;
+                
+                return (
+                  <div className={`${styles.lastAnswer} ${gameState.lastAnswer.correct ? styles.correct : styles.incorrect}`}>
+                    <p>
+                      {t('game.playerAnswered', { 
+                        name: gameState.lastAnswer.playerName, 
+                        answer: translatedAnswer 
+                      })}
+                    </p>
+                    {gameState.lastAnswer.card && gameState.lastAnswer.card.faceUp && (
+                      <div className={styles.revealedCard}>
+                        <PlayingCard card={gameState.lastAnswer.card} size="lg" />
+                      </div>
+                    )}
+                    <p className={styles.answerResult}>
+                      {gameState.lastAnswer.correct ? t('game.correctResult') : t('game.wrongResult')}
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Truco Waiting Phase - show answer but not card/result */}
-              {gameState.awaitingTruco && gameState.lastAnswer && (
-                <div className={styles.trucoWaiting}>
-                  <p>
-                    <strong>{gameState.lastAnswer.playerName}</strong> answered: {gameState.lastAnswer.answer}
-                  </p>
-                  <p className={styles.waitingForTruco}>Choose: Call Truco! or Pass</p>
-                </div>
-              )}
+              {gameState.awaitingTruco && gameState.lastAnswer && (() => {
+                // Translate the answer value
+                const answerKey = gameState.lastAnswer.answer.toLowerCase() as string;
+                const translatedAnswer = t(`answers.${answerKey}`) !== `answers.${answerKey}` 
+                  ? t(`answers.${answerKey}`) 
+                  : gameState.lastAnswer.answer;
+                
+                return (
+                  <div className={styles.trucoWaiting}>
+                    <p>
+                      {t('game.playerAnswered', { 
+                        name: gameState.lastAnswer.playerName, 
+                        answer: translatedAnswer 
+                      })}
+                    </p>
+                    <p className={styles.waitingForTruco}>{t('game.chooseTruco')}</p>
+                  </div>
+                );
+              })()}
 
               {/* Truco Phase - Voting */}
               {gameState.awaitingTruco && (
@@ -488,53 +510,246 @@ export default function GamePage() {
       </div>
 
       {/* Drink Notification Overlay */}
-      {pendingDrink && (
-        <div className={styles.drinkOverlay}>
-          <div className={styles.drinkContent}>
-            <div className={styles.drinkEmoji}>🍺</div>
-            {/* Show the revealed card if present */}
-            {pendingDrink.card && (
-              <div className={styles.drinkCardPreview}>
-                <PlayingCard
-                  card={{...pendingDrink.card, faceUp: true}}
-                  size="md"
-                />
+      {pendingDrink && (() => {
+        const reason = pendingDrink.reason;
+        const isWrongAnswer = reason.includes('incorrectly');
+        const isGiftRow = pendingDrink.type === 'distribute';
+        const isExcited = pendingDrink.type === 'excited';
+        const isTrucoBackfired = reason.includes('Truco backfired');
+        const isOtherPlayerCorrect = reason.includes('answered correctly');
+        const isReceivedGift = reason.includes('sharing'); // Received gift from another player
+        
+        // Use sourcePlayerName from drink event, fallback to extracting from reason
+        const playerName = pendingDrink.sourcePlayerName || (() => {
+          const match = reason.match(/^(\S+)/);
+          return match ? match[1] : '';
+        })();
+        
+        // Get translated reason
+        const getTranslatedReason = () => {
+          if (isExcited) {
+            // amount > 1 means multiple players are excited
+            return pendingDrink.amount > 1
+              ? t('notifications.gettingExcitedPlural', { playerName: playerName || 'Someone' })
+              : t('notifications.gettingExcited', { playerName: playerName || 'Someone' });
+          } else if (isReceivedGift) {
+            return t('notifications.receivedGift', { playerName: playerName || 'Someone' });
+          } else if (isTrucoBackfired) {
+            return t('notifications.trucoBackfired', { playerName: playerName || 'Someone' });
+          } else if (isWrongAnswer) {
+            return t('notifications.youAnsweredIncorrectly');
+          } else if (isOtherPlayerCorrect) {
+            return t('notifications.othersAnsweredCorrectly', { playerName });
+          } else if (reason.includes('Matched card') && reason.includes('gift')) {
+            return t('notifications.giftRowMatch');
+          } else if (reason.includes('Matched card')) {
+            return t('notifications.matchedCard');
+          } else if (reason.includes('No matches')) {
+            return t('notifications.noMatches');
+          }
+          return reason;
+        };
+        
+        // Other players for gift distribution
+        const otherPlayers = gameState?.players.filter(p => p.id !== currentPlayer?.id) || [];
+        
+        // Determine emoji based on event type
+        const getEmoji = () => {
+          if (isGiftRow) return '💝';
+          if (isExcited) return '👀';
+          if (isReceivedGift) return '💕';
+          return '🍺';
+        };
+        
+        // Determine content class
+        const getContentClass = () => {
+          if (isGiftRow) return styles.giftContent;
+          if (isExcited) return styles.excitedContent;
+          if (isReceivedGift) return styles.receivedGiftContent;
+          return '';
+        };
+        
+        return (
+          <div className={styles.drinkOverlay}>
+            <div className={`${styles.drinkContent} ${getContentClass()}`}>
+              {/* Animated emoji based on type */}
+              <div className={isGiftRow ? styles.giftEmoji : (isExcited ? styles.excitedEmoji : styles.drinkEmoji)}>
+                {getEmoji()}
               </div>
-            )}
-            <div className={styles.drinkAmount}>{pendingDrink.amount}</div>
-            <div className={styles.drinkLabel}>
-              {pendingDrink.amount === 1 
-                ? t('notifications.drinkSingular') 
-                : t('notifications.drinkPlural')}
-            </div>
-            <p className={styles.drinkReason}>
-              {(() => {
-                const reason = pendingDrink.reason;
-                if (reason.includes('Truco backfired')) {
-                  return t('notifications.trucoBackfired');
-                } else if (reason.includes('incorrectly')) {
-                  return t('notifications.youAnsweredIncorrectly');
-                } else if (reason.includes('answered correctly')) {
-                  return t('notifications.othersAnsweredCorrectly');
-                } else if (reason.includes('sharing the love')) {
-                  return t('notifications.sharingDrinks');
-                } else if (reason.includes('Matched card')) {
-                  return t('notifications.matchedCard');
-                } else if (reason.includes('No matches')) {
-                  return t('notifications.noMatches');
+              
+              {/* Show the revealed/matched card if present - but NOT for excited overlay */}
+              {pendingDrink.card && !isExcited && (
+                <div className={styles.drinkCardPreview}>
+                  <PlayingCard
+                    card={{...pendingDrink.card, faceUp: true}}
+                    size="md"
+                  />
+                </div>
+              )}
+              
+              {/* Don't show amount for 'excited' type - just watching */}
+              {!isExcited && (
+                <>
+                  <div className={styles.drinkAmount}>
+                    {isGiftRow ? `+${pendingDrink.amount}` : pendingDrink.amount}
+                  </div>
+                  <div className={styles.drinkLabel}>
+                    {isGiftRow 
+                      ? t('notifications.drinksToGive')
+                      : (pendingDrink.amount === 1 
+                          ? t('notifications.drinkSingular') 
+                          : t('notifications.drinkPlural'))}
+                  </div>
+                </>
+              )}
+              
+              <p className={styles.drinkReason}>{getTranslatedReason()}</p>
+              
+              {/* Gift Row: Player Selection */}
+              {isGiftRow && otherPlayers.length > 0 && (
+                <div className={styles.giftPlayerSelection}>
+                  <p className={styles.giftSelectLabel}>{t('notifications.selectPlayers')}</p>
+                  <div className={styles.giftPlayerButtons}>
+                    {otherPlayers.map((player) => (
+                      <button
+                        key={player.id}
+                        className={`${styles.giftPlayerButton} ${
+                          selectedPlayers.includes(player.id) ? styles.giftPlayerSelected : ''
+                        }`}
+                        onClick={() => {
+                          playSound('click');
+                          setSelectedPlayers(prev => 
+                            prev.includes(player.id) 
+                              ? prev.filter(id => id !== player.id)
+                              : [...prev, player.id]
+                          );
+                        }}
+                      >
+                        {player.nickname}
+                      </button>
+                    ))}
+                  </div>
+                  {selectedPlayers.length > 0 && currentPlayer && (
+                    <button
+                      className={`btn btn-success btn-lg ${styles.giftGiveButton}`}
+                      onClick={() => {
+                        playSound('success');
+                        distributeDrinks(selectedPlayers, currentPlayer.drinksToDistribute);
+                        setSelectedPlayers([]);
+                        clearPendingDrink();
+                      }}
+                    >
+                      {t('notifications.giveDrinks')} 💕
+                    </button>
+                  )}
+                </div>
+              )}
+              
+              {/* Regular drink: Confirm button */}
+              {!isGiftRow && !isExcited && (
+                <button
+                  className="btn btn-primary btn-lg"
+                  onClick={handleConfirmDrink}
+                >
+                  {isReceivedGift ? t('notifications.hadMyDrinks') : t('notifications.drinkConfirm')}
+                </button>
+              )}
+              
+              {/* Excited overlay: Different button */}
+              {isExcited && (
+                <button
+                  className="btn btn-secondary btn-lg"
+                  onClick={handleConfirmDrink}
+                >
+                  {/* amount > 1 means multiple players are excited */}
+                  {pendingDrink.amount > 1 
+                    ? t('notifications.avoidEyeContactThem')
+                    : t('notifications.avoidEyeContact', { playerName: playerName || 'them' })}
+                </button>
+              )}
+              
+              {/* Show hand cards - for question phase overlays and pyramid rows (not excited/received gift/gift row) */}
+              {!isExcited && !isReceivedGift && !isGiftRow && (() => {
+                const shouldShowOtherHand = isOtherPlayerCorrect || isTrucoBackfired;
+                const isPyramidMatch = reason.includes('Matched card');
+                const isNoMatches = reason.includes('No matches');
+                
+                // Get the answer that triggered this overlay - use pendingDrink.answer
+                const triggerAnswer = pendingDrink.answer || '';
+                const triggerPlayerName = pendingDrink.sourcePlayerName || playerName;
+                
+                // Translate the answer value if it's a question answer
+                const answerKey = triggerAnswer.toLowerCase();
+                const translatedAnswer = t(`answers.${answerKey}`) !== `answers.${answerKey}` 
+                  ? t(`answers.${answerKey}`) 
+                  : triggerAnswer;
+                
+                // Get the pyramid card value for highlighting matched cards
+                const pyramidCardValue = pendingDrink.card?.value;
+                
+                // If another player answered correctly or truco backfired, show THEIR hand
+                if (shouldShowOtherHand && playerName) {
+                  const answeringPlayer = gameState?.players.find(p => p.nickname === playerName);
+                  if (answeringPlayer && answeringPlayer.hand.length > 0) {
+                    return (
+                      <div className={styles.drinkHandSection}>
+                        {/* Show the answer that triggered this */}
+                        {triggerAnswer && (
+                          <div className={styles.correctAnswerDisplay}>
+                            <span className={styles.correctAnswerLabel}>{t('notifications.theirAnswer', { playerName: triggerPlayerName })}:</span>
+                            <span className={styles.correctAnswerText}>{translatedAnswer}</span>
+                          </div>
+                        )}
+                        <p className={styles.drinkHandLabel}>
+                          {t('game.theirHand', { playerName })}
+                        </p>
+                        <div className={styles.drinkHandCards}>
+                          {answeringPlayer.hand.map((card, idx) => (
+                            <PlayingCard
+                              key={card.id || idx}
+                              card={{...card, faceUp: true}}
+                              size="sm"
+                              highlighted={idx === answeringPlayer.hand.length - 1}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
                 }
-                return reason;
+                
+                // Show current player's hand for wrong answer, pyramid match, or no matches
+                if ((isWrongAnswer || isPyramidMatch || isNoMatches) && currentPlayer && currentPlayer.hand.length > 0) {
+                  return (
+                    <div className={styles.drinkHandSection}>
+                      {/* Show player's wrong answer */}
+                      {isWrongAnswer && triggerAnswer && (
+                        <div className={styles.wrongAnswerDisplay}>
+                          <span className={styles.wrongAnswerLabel}>{t('notifications.yourAnswer')}:</span>
+                          <span className={styles.wrongAnswerText}>{translatedAnswer}</span>
+                        </div>
+                      )}
+                      <p className={styles.drinkHandLabel}>{t('game.yourHand')}</p>
+                      <div className={styles.drinkHandCards}>
+                        {currentPlayer.hand.map((card, idx) => (
+                          <PlayingCard
+                            key={card.id || idx}
+                            card={{...card, faceUp: true}}
+                            size="sm"
+                            highlighted={isPyramidMatch && pyramidCardValue && card.value === pyramidCardValue}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+                
+                return null;
               })()}
-            </p>
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleConfirmDrink}
-            >
-              {t('notifications.drinkConfirm')}
-            </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Replay Vote Modal */}
       <Modal

@@ -8,7 +8,8 @@ import {
   DrinkEvent,
   TrucoVote,
   ClientToServerEvents,
-  ServerToClientEvents 
+  ServerToClientEvents,
+  LobbyInfo
 } from '../lib/game-engine/types';
 import { createDeck, shuffleDeck, drawCard } from '../lib/game-engine/deck';
 import { generatePyramid, revealPyramidCard, calculatePyramidDrinks } from '../lib/game-engine/pyramid';
@@ -197,9 +198,13 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
         id: uuidv4(),
         type: 'take',
         targetPlayerIds: nonTrucoCallerIds,
+        sourcePlayerId: currentPlayer.id,
+        sourcePlayerName: currentPlayer.nickname,
         amount: 1,
         reason: `${currentPlayer.nickname} answered correctly!`,
         timestamp: Date.now(),
+        card: gameState.lastAnswer?.card,
+        answer: gameState.lastAnswer?.answer,
       });
     }
     
@@ -209,9 +214,13 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
         id: uuidv4(),
         type: 'take',
         targetPlayerIds: trucoCallerIds,
+        sourcePlayerId: currentPlayer.id,
+        sourcePlayerName: currentPlayer.nickname,
         amount: 2,
-        reason: 'Truco backfired! The answer was correct. (+1 penalty)',
+        reason: `Truco backfired! ${currentPlayer.nickname} got it right. (+1 penalty)`,
         timestamp: Date.now(),
+        card: gameState.lastAnswer?.card,
+        answer: gameState.lastAnswer?.answer,
       });
     }
   } else {
@@ -223,11 +232,15 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
       id: uuidv4(),
       type: 'take',
       targetPlayerIds: [currentPlayer.id],
+      sourcePlayerId: currentPlayer.id,
+      sourcePlayerName: currentPlayer.nickname,
       amount: totalDrinks,
       reason: trucoCount > 0 
         ? `${currentPlayer.nickname} answered incorrectly! (+${trucoCount} Truco penalty)`
         : `${currentPlayer.nickname} answered incorrectly!`,
       timestamp: Date.now(),
+      card: gameState.lastAnswer?.card,
+      answer: gameState.lastAnswer?.answer,
     });
   }
   
@@ -303,7 +316,8 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
     gameState.currentPyramidCard
   );
   
-  gameState.revealedCard = { ...card, faceUp: true };
+  const revealedCard = { ...card, faceUp: true };
+  gameState.revealedCard = revealedCard;
   
   // Calculate drinks
   const playerHands = gameState.players.map(p => ({
@@ -318,25 +332,104 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
     gameState.players.map(p => p.id)
   );
   
-  // Process drink assignments
-  for (const assignment of drinkAssignments) {
-    if (assignment.type === 'take') {
-      emitDrinkEvent(io, gameState.roomId, {
-        id: uuidv4(),
-        type: 'take',
-        targetPlayerIds: [assignment.playerId],
-        amount: assignment.amount,
-        reason: matchesFound 
-          ? `Matched card in Row ${row.rowNumber}!`
-          : `No matches - everyone drinks!`,
-        timestamp: Date.now(),
-        card: card, // Include the revealed card for overlay display
-      });
-    } else {
-      // Give drinks to distribute
-      const player = gameState.players.find(p => p.id === assignment.playerId);
+  // Track which players have matches for gift rows
+  const matchingPlayerIds = drinkAssignments
+    .filter(a => a.type === 'distribute')
+    .map(a => a.playerId);
+  
+  // For gift rows (row.isDistribute === true), send different overlays:
+  // - Matching players: gift overlay to distribute drinks
+  // - Non-matching players: "getting excited" overlay
+  if (row.isDistribute && matchingPlayerIds.length > 0) {
+    // Collect total drinks per matching player
+    const playerDrinkTotals: Map<string, number> = new Map();
+    for (const assignment of drinkAssignments) {
+      if (assignment.type === 'distribute') {
+        playerDrinkTotals.set(
+          assignment.playerId,
+          (playerDrinkTotals.get(assignment.playerId) || 0) + assignment.amount
+        );
+      }
+    }
+    
+    // Emit gift overlay for each matching player (they can distribute)
+    for (const [playerId, amount] of playerDrinkTotals) {
+      const player = gameState.players.find(p => p.id === playerId);
       if (player) {
-        player.drinksToDistribute += assignment.amount;
+        player.drinksToDistribute += amount;
+        
+        emitDrinkEvent(io, gameState.roomId, {
+          id: uuidv4(),
+          type: 'distribute',
+          targetPlayerIds: [playerId],
+          sourcePlayerId: playerId,
+          sourcePlayerName: player.nickname,
+          amount: amount,
+          reason: `Matched card in gift Row ${row.rowNumber}!`,
+          timestamp: Date.now(),
+          card: revealedCard,
+        });
+      }
+    }
+    
+    // Emit "getting excited" overlay for non-matching players
+    const nonMatchingPlayerIds = gameState.players
+      .filter(p => !matchingPlayerIds.includes(p.id))
+      .map(p => p.id);
+    
+    if (nonMatchingPlayerIds.length > 0) {
+      // Get all matching player names for the message
+      const matchingPlayerNames = matchingPlayerIds
+        .map(id => gameState.players.find(p => p.id === id)?.nickname)
+        .filter(Boolean) as string[];
+      
+      // Format names: "Player1", "Player1 & Player2", or "Player1, Player2 & Player3"
+      let namesList: string;
+      if (matchingPlayerNames.length === 1) {
+        namesList = matchingPlayerNames[0];
+      } else if (matchingPlayerNames.length === 2) {
+        namesList = `${matchingPlayerNames[0]} & ${matchingPlayerNames[1]}`;
+      } else {
+        const lastPlayer = matchingPlayerNames.pop();
+        namesList = `${matchingPlayerNames.join(', ')} & ${lastPlayer}`;
+      }
+      
+      for (const playerId of nonMatchingPlayerIds) {
+        const verb = matchingPlayerNames.length > 1 ? 'are' : 'is';
+        emitDrinkEvent(io, gameState.roomId, {
+          id: uuidv4(),
+          type: 'excited',
+          targetPlayerIds: [playerId],
+          sourcePlayerId: matchingPlayerIds[0],
+          sourcePlayerName: namesList, // All matching player names
+          amount: matchingPlayerNames.length, // Number of excited players (for overlay to use)
+          reason: `${namesList} ${verb} getting excited!...`,
+          timestamp: Date.now(),
+          card: revealedCard,
+        });
+      }
+    }
+  } else {
+    // Regular drink rows or no matches - original behavior
+    for (const assignment of drinkAssignments) {
+      if (assignment.type === 'take') {
+        emitDrinkEvent(io, gameState.roomId, {
+          id: uuidv4(),
+          type: 'take',
+          targetPlayerIds: [assignment.playerId],
+          amount: assignment.amount,
+          reason: matchesFound 
+            ? `Matched card in Row ${row.rowNumber}!`
+            : `No matches - everyone drinks!`,
+          timestamp: Date.now(),
+          card: revealedCard,
+        });
+      } else {
+        // Give drinks to distribute
+        const player = gameState.players.find(p => p.id === assignment.playerId);
+        if (player) {
+          player.drinksToDistribute += assignment.amount;
+        }
       }
     }
   }
@@ -376,11 +469,13 @@ function handleDistributeDrinks(
   const drinksPerTarget = Math.floor(amount / targetPlayerIds.length);
   
   if (drinksPerTarget > 0) {
+    // Send 'take' event to recipients so they get the "sharing love" overlay
     emitDrinkEvent(io, gameState.roomId, {
       id: uuidv4(),
-      type: 'distribute',
+      type: 'take',
       targetPlayerIds,
       sourcePlayerId,
+      sourcePlayerName: sourcePlayer.nickname,
       amount: drinksPerTarget,
       reason: `${sourcePlayer.nickname} is sharing the love!`,
       timestamp: Date.now(),
@@ -409,11 +504,40 @@ function startNewGame(io: SocketIOServer, room: Room) {
   broadcastGameState(io, gameState.roomId);
 }
 
+// Get list of open lobbies for lobby browser
+function getOpenLobbies(): LobbyInfo[] {
+  const openLobbies: LobbyInfo[] = [];
+  
+  rooms.forEach((room) => {
+    // Only include lobbies in lobby phase with available spots
+    if (room.gameState.phase === 'lobby' && room.gameState.players.length < 10) {
+      const host = room.gameState.players.find(p => p.isDealer);
+      openLobbies.push({
+        roomId: room.id,
+        hostName: host?.nickname || 'Unknown',
+        playerCount: room.gameState.players.length,
+        maxPlayers: 10,
+        difficulty: room.gameState.difficulty,
+      });
+    }
+  });
+  
+  return openLobbies;
+}
+
+function broadcastLobbies(io: SocketIOServer) {
+  io.emit('lobbies:update', getOpenLobbies());
+}
+
 // Main server setup
 const httpServer = createServer();
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: [
+      'http://localhost:3000',
+      'https://xerekinha-frontend.onrender.com',
+      'https://game.cassianosantos.com'
+    ],
     methods: ['GET', 'POST'],
   },
 });
@@ -440,6 +564,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     
     callback(roomId);
     broadcastGameState(io, roomId);
+    broadcastLobbies(io); // Update lobby browser
   });
 
   socket.on('room:join', (roomId, nickname, callback) => {
@@ -468,6 +593,12 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     callback(true);
     io.to(roomId.toUpperCase()).emit('room:playerJoined', player);
     broadcastGameState(io, roomId.toUpperCase());
+    broadcastLobbies(io); // Update lobby browser
+  });
+
+  // Lobby browser - get list of open lobbies
+  socket.on('lobbies:list', (callback) => {
+    callback(getOpenLobbies());
   });
 
   socket.on('room:leave', () => {

@@ -9,7 +9,10 @@
         "enterNickname": "Digite seu Apelido",
         "join": "Entrar",
         "cancel": "Cancelar",
-        "playerCount": "2-10 Jogadores"
+        "playerCount": "2-10 Jogadores",
+        "browseGames": "Buscar Jogos",
+        "noLobbiesAvailable": "Nenhum jogo disponível",
+        "createYourOwn": "Crie uma sala e convide seus amigos!"
     },
     "lobby": {
         "title": "Sala de Espera",
@@ -42,6 +45,7 @@
         "question": "Pergunta {current} de {total}",
         "round": "Rodada {current} de {total}",
         "yourHand": "Sua Mão",
+        "theirHand": "Mão de {playerName}",
         "otherPlayers": "Outros Jogadores",
         "pyramid": "Pirâmide",
         "row": "Linha {number}",
@@ -57,7 +61,26 @@
         "selectPlayer": "Selecione jogador(es) para dar drinks",
         "giveDrinks": "Dar Drinks",
         "leaderboard": "Placar",
-        "totalDrinks": "Total de Drinks"
+        "totalDrinks": "Total de Drinks",
+        "playerAnswered": "{name} respondeu: {answer}",
+        "chooseTruco": "Escolha: Chamar Truco! ou Passar",
+        "correctResult": "✓ Correto!",
+        "wrongResult": "✗ Errado!"
+    },
+    "answers": {
+        "odd": "Ímpar",
+        "even": "Par",
+        "higher": "Maior",
+        "lower": "Menor",
+        "equal": "Igual",
+        "inside": "Dentro",
+        "outside": "Fora",
+        "red": "Vermelho",
+        "black": "Preto",
+        "hearts": "Copas",
+        "diamonds": "Ouros",
+        "clubs": "Paus",
+        "spades": "Espadas"
     },
     "endGame": {
         "title": "Fim de Jogo!",
@@ -105,11 +128,23 @@
         "drinkConfirm": "Já bebi! 🍻",
         "youAnsweredCorrectly": "Você acertou!",
         "youAnsweredIncorrectly": "Você errou!",
-        "othersAnsweredCorrectly": "Os outros acertaram!",
+        "othersAnsweredCorrectly": "{playerName} acertou!",
         "trucoPenalty": "+{count} penalidade de Truco",
-        "trucoBackfired": "Truco saiu pela culatra! Acertaram.",
-        "sharingDrinks": "Alguém está distribuindo amor!",
+        "trucoBackfired": "Truco saiu pela culatra! {playerName} acertou.",
+        "sharingDrinks": "{playerName} está distribuindo amor!",
         "matchedCard": "Carta combinada na pirâmide!",
-        "noMatches": "Ninguém? - todo mundo bebe!"
+        "noMatches": "Ninguém? - todo mundo bebe!",
+        "drinksToGive": "goles para dar",
+        "giftRowMatch": "Você combinou uma carta na linha do amor!",
+        "selectPlayers": "Selecione jogadores para dar goles",
+        "giveDrinks": "Dar Goles",
+        "yourAnswer": "Sua resposta",
+        "theirAnswer": "Resposta de {playerName}",
+        "gettingExcited": "{playerName} está cheio de tesão! 🔥",
+        "gettingExcitedPlural": "{playerName} estão cheios de tesão! 🔥",
+        "receivedGift": "{playerName} está compartilhando amor com você!",
+        "hadMyDrinks": "Já bebi! 🍺",
+        "avoidEyeContact": "Evite contato visual com {playerName} 😂",
+        "avoidEyeContactThem": "Evite contato visual com eles 😂"
     }
 }
