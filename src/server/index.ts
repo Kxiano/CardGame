@@ -545,6 +545,7 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpSe
     origin: [
       'http://localhost:3000',
       'https://xerekinha-frontend.onrender.com',
+      'https://xerekinha-preview-frontend.onrender.com',
       'https://game.cassianosantos.com'
     ],
     methods: ['GET', 'POST'],
