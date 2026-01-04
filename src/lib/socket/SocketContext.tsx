@@ -13,9 +13,19 @@ import {
   LobbyInfo
 } from '@/lib/game-engine/types';
 
+// Session persistence constants
+const SESSION_STORAGE_KEY = 'xerekinha-session';
+
+interface StoredSession {
+  token: string;
+  roomId: string;
+  nickname: string;
+}
+
 interface SocketContextType {
   socket: Socket<ServerToClientEvents, ClientToServerEvents> | null;
   isConnected: boolean;
+  isReconnecting: boolean;
   gameState: GameState | null;
   currentPlayer: Player | null;
   error: string | null;
@@ -63,11 +73,13 @@ interface SocketProviderProps {
 export function SocketProvider({ children }: SocketProviderProps) {
   const [socket, setSocket] = useState<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingDrink, setPendingDrink] = useState<DrinkEvent | null>(null);
   const [drinkEventCallbacks, setDrinkEventCallbacks] = useState<Set<(event: DrinkEvent) => void>>(new Set());
+  const sessionTokenRef = useRef<string | null>(null);
   
   // Use ref to access currentPlayer in event handlers
   const currentPlayerRef = useRef<Player | null>(null);
@@ -87,6 +99,41 @@ export function SocketProvider({ children }: SocketProviderProps) {
 
     newSocket.on('connect', () => {
       setIsConnected(true);
+      
+      // Only attempt reconnection if THIS tab had an active session
+      // We use sessionStorage (tab-specific) to track if we were previously connected
+      const wasConnectedInThisTab = sessionStorage.getItem('xerekinha-tab-active');
+      const storedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      
+      // Only reconnect if:
+      // 1. There's a stored session in localStorage
+      // 2. This specific tab was previously connected (or it's a page refresh)
+      if (storedSession && wasConnectedInThisTab) {
+        try {
+          const session: StoredSession = JSON.parse(storedSession);
+          setIsReconnecting(true);
+          newSocket.emit('room:reconnect', session.token, (success, error, gameState) => {
+            setIsReconnecting(false);
+            if (success && gameState) {
+              sessionTokenRef.current = session.token;
+              setGameState(gameState);
+              const player = gameState.players.find(p => p.socketId === newSocket.id);
+              setCurrentPlayer(player || null);
+              console.log('Reconnected to session successfully');
+            } else {
+              // Session invalid, clear it
+              localStorage.removeItem(SESSION_STORAGE_KEY);
+              sessionStorage.removeItem('xerekinha-tab-active');
+              sessionTokenRef.current = null;
+              console.log('Session expired or invalid:', error);
+            }
+          });
+        } catch {
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+          sessionStorage.removeItem('xerekinha-tab-active');
+          sessionTokenRef.current = null;
+        }
+      }
     });
 
     newSocket.on('disconnect', () => {
@@ -134,6 +181,32 @@ export function SocketProvider({ children }: SocketProviderProps) {
       });
     });
 
+    // Handle temporary disconnection (player may reconnect)
+    newSocket.on('room:playerDisconnected', (playerId) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map(p =>
+            p.id === playerId ? { ...p, isConnected: false } : p
+          ),
+        };
+      });
+    });
+
+    // Handle player reconnection
+    newSocket.on('room:playerReconnected', (playerId) => {
+      setGameState(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          players: prev.players.map(p =>
+            p.id === playerId ? { ...p, isConnected: true } : p
+          ),
+        };
+      });
+    });
+
     newSocket.on('game:drinkEvent', (event) => {
       // Set pending drink if current player is target
       if (currentPlayerRef.current && event.targetPlayerIds.includes(currentPlayerRef.current.id)) {
@@ -153,11 +226,22 @@ export function SocketProvider({ children }: SocketProviderProps) {
     if (!socket) return null;
 
     return new Promise((resolve) => {
-      socket.emit('room:create', nickname, (roomId, error) => {
-        if (error) {
-          setError(error);
+      socket.emit('room:create', nickname, (roomId, error, sessionToken) => {
+        if (error || !roomId) {
+          setError(error || 'Failed to create room');
           resolve(null);
         } else {
+          // Store session for reconnection
+          if (sessionToken) {
+            sessionTokenRef.current = sessionToken;
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+              token: sessionToken,
+              roomId,
+              nickname,
+            }));
+            // Mark this tab as having an active session (for reconnection on refresh)
+            sessionStorage.setItem('xerekinha-tab-active', 'true');
+          }
           resolve(roomId);
         }
       });
@@ -168,12 +252,23 @@ export function SocketProvider({ children }: SocketProviderProps) {
     if (!socket) return false;
 
     return new Promise((resolve) => {
-      socket.emit('room:join', roomId, nickname, (success, error) => {
-        if (error) {
-          setError(error);
+      socket.emit('room:join', roomId, nickname, (success, error, sessionToken) => {
+        if (error || !success) {
+          setError(error || 'Failed to join room');
           resolve(false);
         } else {
-          resolve(success);
+          // Store session for reconnection
+          if (sessionToken) {
+            sessionTokenRef.current = sessionToken;
+            localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify({
+              token: sessionToken,
+              roomId: roomId.toUpperCase(),
+              nickname,
+            }));
+            // Mark this tab as having an active session (for reconnection on refresh)
+            sessionStorage.setItem('xerekinha-tab-active', 'true');
+          }
+          resolve(true);
         }
       });
     });
@@ -182,6 +277,10 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const leaveRoom = useCallback(() => {
     if (!socket) return;
     socket.emit('room:leave');
+    // Clear session on intentional leave
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    sessionStorage.removeItem('xerekinha-tab-active');
+    sessionTokenRef.current = null;
     setGameState(null);
     setCurrentPlayer(null);
   }, [socket]);
@@ -305,6 +404,7 @@ export function SocketProvider({ children }: SocketProviderProps) {
   const value: SocketContextType = {
     socket,
     isConnected,
+    isReconnecting,
     gameState,
     currentPlayer,
     error,

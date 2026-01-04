@@ -124,6 +124,8 @@ export interface ServerToClientEvents {
   'room:joined': (gameState: GameState) => void;
   'room:playerJoined': (player: Player) => void;
   'room:playerLeft': (playerId: string) => void;
+  'room:playerDisconnected': (playerId: string) => void;
+  'room:playerReconnected': (playerId: string) => void;
   'room:error': (message: string) => void;
   'game:stateUpdate': (gameState: GameState) => void;
   'game:drinkEvent': (event: DrinkEvent) => void;
@@ -144,8 +146,9 @@ export interface LobbyInfo {
 }
 
 export interface ClientToServerEvents {
-  'room:create': (nickname: string, callback: (roomId: string | null, error?: string) => void) => void;
-  'room:join': (roomId: string, nickname: string, callback: (success: boolean, error?: string) => void) => void;
+  'room:create': (nickname: string, callback: (roomId: string | null, error?: string, sessionToken?: string) => void) => void;
+  'room:join': (roomId: string, nickname: string, callback: (success: boolean, error?: string, sessionToken?: string) => void) => void;
+  'room:reconnect': (sessionToken: string, callback: (success: boolean, error?: string, gameState?: GameState) => void) => void;
   'room:leave': () => void;
   'game:setReady': (ready: boolean) => void;
   'game:setDifficulty': (difficulty: Difficulty) => void;

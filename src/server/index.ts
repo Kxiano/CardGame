@@ -22,6 +22,15 @@ const PORT = process.env.PORT || 3001;
 const rooms: Map<string, Room> = new Map();
 const playerRooms: Map<string, string> = new Map(); // socketId -> roomId
 
+// Session persistence for reconnection
+interface PlayerSession {
+  playerId: string;
+  roomId: string;
+  expiresAt: number; // 0 means no expiry (connected)
+}
+const playerSessions: Map<string, PlayerSession> = new Map(); // sessionToken -> session
+const SESSION_GRACE_PERIOD = 120000; // 2 minutes
+
 function generateRoomId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -542,6 +551,36 @@ const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpSe
   },
 });
 
+// Session cleanup interval - removes expired sessions
+setInterval(() => {
+  const now = Date.now();
+  for (const [sessionToken, session] of playerSessions.entries()) {
+    if (session.expiresAt > 0 && session.expiresAt < now) {
+      // Session expired - remove player from room
+      const room = rooms.get(session.roomId);
+      if (room) {
+        const player = room.gameState.players.find(p => p.id === session.playerId);
+        room.gameState.players = room.gameState.players.filter(p => p.id !== session.playerId);
+        if (player) {
+          io.to(session.roomId).emit('room:playerLeft', session.playerId);
+          console.log(`Session expired for player ${player.nickname} in room ${session.roomId}`);
+        }
+        // If room is empty, delete it
+        if (room.gameState.players.length === 0) {
+          rooms.delete(session.roomId);
+        } else if (player?.isDealer) {
+          // Assign new dealer
+          room.gameState.players[0].isDealer = true;
+          room.gameState.players[0].isReady = true;
+        }
+        broadcastGameState(io, session.roomId);
+        broadcastLobbies(io);
+      }
+      playerSessions.delete(sessionToken);
+    }
+  }
+}, 10000); // Check every 10 seconds
+
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   console.log('Client connected:', socket.id);
 
@@ -562,7 +601,15 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     playerRooms.set(socket.id, roomId);
     socket.join(roomId);
     
-    callback(roomId);
+    // Create session token for reconnection
+    const sessionToken = uuidv4();
+    playerSessions.set(sessionToken, {
+      playerId: player.id,
+      roomId,
+      expiresAt: 0, // No expiry while connected
+    });
+    
+    callback(roomId, undefined, sessionToken);
     broadcastGameState(io, roomId);
     broadcastLobbies(io); // Update lobby browser
   });
@@ -590,10 +637,55 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     playerRooms.set(socket.id, roomId.toUpperCase());
     socket.join(roomId.toUpperCase());
     
-    callback(true);
+    // Create session token for reconnection
+    const sessionToken = uuidv4();
+    playerSessions.set(sessionToken, {
+      playerId: player.id,
+      roomId: roomId.toUpperCase(),
+      expiresAt: 0, // No expiry while connected
+    });
+    
+    callback(true, undefined, sessionToken);
     io.to(roomId.toUpperCase()).emit('room:playerJoined', player);
     broadcastGameState(io, roomId.toUpperCase());
     broadcastLobbies(io); // Update lobby browser
+  });
+
+  // Reconnect to existing session
+  socket.on('room:reconnect', (sessionToken, callback) => {
+    const session = playerSessions.get(sessionToken);
+    if (!session) {
+      callback(false, 'Session not found or expired');
+      return;
+    }
+    
+    const room = rooms.get(session.roomId);
+    if (!room) {
+      playerSessions.delete(sessionToken);
+      callback(false, 'Room no longer exists');
+      return;
+    }
+    
+    const player = room.gameState.players.find(p => p.id === session.playerId);
+    if (!player) {
+      playerSessions.delete(sessionToken);
+      callback(false, 'Player no longer in room');
+      return;
+    }
+    
+    // Reconnect the player
+    player.socketId = socket.id;
+    player.isConnected = true;
+    session.expiresAt = 0; // Clear expiry
+    
+    playerRooms.set(socket.id, session.roomId);
+    socket.join(session.roomId);
+    
+    console.log(`Player ${player.nickname} reconnected to room ${session.roomId}`);
+    
+    callback(true, undefined, room.gameState);
+    io.to(session.roomId).emit('room:playerReconnected', player.id);
+    broadcastGameState(io, session.roomId);
   });
 
   // Lobby browser - get list of open lobbies
@@ -611,6 +703,14 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     const player = room.gameState.players.find(p => p.socketId === socket.id);
     if (!player) return;
     
+    // Delete the player's session (intentional leave, no grace period)
+    for (const [token, session] of playerSessions.entries()) {
+      if (session.playerId === player.id && session.roomId === roomId) {
+        playerSessions.delete(token);
+        break;
+      }
+    }
+    
     room.gameState.players = room.gameState.players.filter(p => p.socketId !== socket.id);
     playerRooms.delete(socket.id);
     socket.leave(roomId);
@@ -627,6 +727,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     }
     
     broadcastGameState(io, roomId);
+    broadcastLobbies(io);
   });
 
   socket.on('game:setReady', (ready) => {
@@ -876,7 +977,18 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     const player = room.gameState.players.find(p => p.socketId === socket.id);
     if (player) {
       player.isConnected = false;
-      io.to(roomId).emit('room:playerLeft', player.id);
+      
+      // Set session expiry for grace period
+      for (const [token, session] of playerSessions.entries()) {
+        if (session.playerId === player.id && session.roomId === roomId) {
+          session.expiresAt = Date.now() + SESSION_GRACE_PERIOD;
+          console.log(`Player ${player.nickname} disconnected, grace period started (${SESSION_GRACE_PERIOD / 1000}s)`);
+          break;
+        }
+      }
+      
+      // Emit playerDisconnected (temporary) instead of playerLeft (permanent)
+      io.to(roomId).emit('room:playerDisconnected', player.id);
       broadcastGameState(io, roomId);
     }
     
