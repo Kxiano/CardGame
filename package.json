@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "dev:server": "npx tsx src/server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 0.0.0.0",
     "start:server": "npx tsx src/server/index.ts",
+    "start:all": "concurrently \"npm run start\" \"npm run start:server\"",
     "lint": "eslint"
   },
   "dependencies": {
