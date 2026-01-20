@@ -1,0 +1,235 @@
+/* Component Layer Styles - Reusable Component Patterns */
+@layer components {
+  /* Glass Panel Effect */
+  .glass-panel {
+    @apply bg-glass-bg backdrop-blur-[10px] border border-glass-border rounded-lg;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.3);
+  }
+
+  /* Felt Table Texture */
+  .felt-texture {
+    background:
+      radial-gradient(ellipse at center, var(--color-table-felt) 0%, #145a35 100%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-blend-mode: overlay;
+  }
+
+  /* Button Base Styles */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3;
+    @apply font-semibold border-none rounded-lg cursor-pointer;
+    @apply transition-all duration-150 whitespace-nowrap;
+  }
+
+  .btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply text-gray-900 shadow-lg;
+    background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  }
+
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, var(--color-gold-light) 0%, var(--color-gold) 100%);
+    @apply -translate-y-0.5;
+    box-shadow: 0 6px 20px rgb(212 175 55 / 0.4);
+  }
+
+  .btn-secondary {
+    @apply text-white border border-glass-border;
+    @apply bg-glass-bg backdrop-blur-[10px];
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    @apply border-gold;
+    background: rgb(255 255 255 / 0.1);
+  }
+
+  .btn-danger {
+    @apply text-white;
+    background: linear-gradient(135deg, var(--color-danger) 0%, #cc5555 100%);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    @apply -translate-y-0.5;
+    background: linear-gradient(135deg, #ff8888 0%, var(--color-danger) 100%);
+  }
+
+  .btn-success {
+    @apply text-gray-900;
+    background: linear-gradient(135deg, var(--color-success) 0%, #3baa9f 100%);
+  }
+
+  .btn-success:hover:not(:disabled) {
+    @apply -translate-y-0.5;
+  }
+
+  .btn-lg {
+    @apply px-8 py-4 text-lg;
+  }
+
+  .btn-sm {
+    @apply px-4 py-1 text-sm;
+  }
+
+  /* Input Styles */
+  .input {
+    @apply w-full px-4 py-2 text-base text-white;
+    @apply bg-black/30 border border-glass-border rounded-md;
+    @apply outline-none transition-all duration-150;
+  }
+
+  .input:focus {
+    @apply border-gold;
+    box-shadow: 0 0 0 3px rgb(212 175 55 / 0.2);
+  }
+
+  .input::placeholder {
+    color: var(--color-text-muted);
+  }
+
+  /* Playing Card */
+  .playing-card {
+    @apply relative flex items-center justify-center;
+    @apply w-[60px] h-[84px] rounded-md font-bold;
+    @apply transition-transform duration-[250ms];
+    background: var(--color-card-white);
+    box-shadow: 0 2px 4px rgb(0 0 0 / 0.2), 0 4px 8px rgb(0 0 0 / 0.1);
+    perspective: 1000px;
+  }
+
+  .playing-card.red {
+    color: var(--color-card-red);
+  }
+
+  .playing-card.black {
+    color: var(--color-card-black);
+  }
+
+  .playing-card.face-down {
+    background: linear-gradient(135deg, #1a3a6e 0%, #0d1f3c 100%);
+    background-image:
+      linear-gradient(135deg, #1a3a6e 0%, #0d1f3c 100%),
+      repeating-linear-gradient(45deg,
+        transparent,
+        transparent 5px,
+        rgb(255 255 255 / 0.05) 5px,
+        rgb(255 255 255 / 0.05) 10px);
+  }
+
+  .playing-card-lg {
+    @apply w-20 h-28 text-xl;
+  }
+
+  .playing-card-sm {
+    @apply w-[45px] h-[63px] text-xs;
+  }
+
+  /* Modal Styles */
+  .modal-overlay {
+    @apply fixed inset-0 flex items-center justify-center z-50 p-4;
+    background: rgb(0 0 0 / 0.7);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .modal-content {
+    @apply bg-bg-secondary border border-glass-border rounded-xl p-8;
+    @apply w-full max-h-[90vh] overflow-y-auto;
+    animation: slideUp 0.4s ease-out;
+  }
+
+  /* Player Item */
+  .player-item {
+    @apply flex items-center gap-4 px-4 py-2 rounded-md;
+    @apply bg-black/20 transition-all duration-150;
+  }
+
+  .player-item.current-turn {
+    @apply border-2 border-gold;
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .player-avatar {
+    @apply w-10 h-10 rounded-full flex items-center justify-center;
+    @apply font-bold text-gray-900;
+    background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  }
+
+  /* Status Badges */
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full;
+    @apply text-xs font-semibold;
+  }
+
+  .badge-ready {
+    @apply border border-success text-success;
+    background: rgb(78 205 196 / 0.2);
+  }
+
+  .badge-waiting {
+    @apply border border-text-muted;
+    background: rgb(255 255 255 / 0.1);
+    color: var(--color-text-muted);
+  }
+
+  .badge-dealer {
+    @apply text-gray-900;
+    background: linear-gradient(135deg, var(--color-gold) 0%, var(--color-gold-dark) 100%);
+  }
+
+  /* Drink Counter */
+  .drink-counter {
+    @apply inline-flex items-center gap-1 px-2 py-1;
+    @apply rounded-full font-semibold text-warning;
+    @apply border border-warning;
+    background: rgb(255 140 0 / 0.2);
+  }
+
+  /* Leaderboard Items */
+  .leaderboard-item {
+    @apply flex items-center justify-between px-4 py-2 rounded-md;
+    @apply bg-black/20;
+  }
+
+  .leaderboard-item.rank-1 {
+    @apply border border-gold;
+    background: linear-gradient(135deg, rgb(212 175 55 / 0.3) 0%, rgb(166 139 42 / 0.3) 100%);
+  }
+
+  .leaderboard-item.rank-2 {
+    @apply border border-[#c0c0c0];
+    background: linear-gradient(135deg, rgb(192 192 192 / 0.2) 0%, rgb(169 169 169 / 0.2) 100%);
+  }
+
+  .leaderboard-item.rank-3 {
+    @apply border border-[#cd7f32];
+    background: linear-gradient(135deg, rgb(205 127 50 / 0.2) 0%, rgb(166 102 42 / 0.2) 100%);
+  }
+
+  /* Pyramid Layout */
+  .pyramid {
+    @apply flex flex-col items-center gap-2;
+  }
+
+  .pyramid-row {
+    @apply flex gap-1 justify-center;
+  }
+
+  /* Toast Notifications */
+  .toast-container {
+    @apply fixed top-6 right-6 z-[100] flex flex-col gap-2;
+  }
+
+  .toast {
+    @apply px-6 py-4 rounded-md;
+    @apply bg-glass-bg backdrop-blur-[10px] border border-glass-border;
+    animation: slideDown 0.4s ease-out;
+  }
+
+  .toast-drink {
+    @apply text-white font-bold text-xl;
+    background: linear-gradient(135deg, var(--color-warning) 0%, #cc7000 100%);
+  }
+}

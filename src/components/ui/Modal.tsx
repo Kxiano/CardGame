@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode, useEffect } from 'react';
-import styles from './Modal.module.css';
 
 interface ModalProps {
   isOpen: boolean;
@@ -12,13 +11,13 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function Modal({ 
-  isOpen, 
-  onClose, 
-  title, 
-  children, 
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
   showCloseButton = true,
-  size = 'md' 
+  size = 'md'
 }: ModalProps) {
   useEffect(() => {
     if (isOpen) {
@@ -33,11 +32,11 @@ export function Modal({
   }, [isOpen]);
 
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
+    function handleEscape(e: KeyboardEvent) {
       if (e.key === 'Escape' && onClose) {
         onClose();
       }
-    };
+    }
 
     if (isOpen) {
       window.addEventListener('keydown', handleEscape);
@@ -51,22 +50,26 @@ export function Modal({
   if (!isOpen) return null;
 
   const sizeClasses = {
-    sm: styles.sizeSm,
-    md: styles.sizeMd,
-    lg: styles.sizeLg,
+    sm: 'max-w-md',
+    md: 'max-w-xl',
+    lg: 'max-w-3xl',
   };
 
   return (
-    <div className={styles.overlay} onClick={onClose}>
-      <div 
-        className={`${styles.content} ${sizeClasses[size]}`}
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div
+        className={`modal-content ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
-          <div className={styles.header}>
-            {title && <h2 className={styles.title}>{title}</h2>}
+          <div className="flex items-center justify-between mb-6">
+            {title && <h2 className="text-2xl font-bold text-gold">{title}</h2>}
             {showCloseButton && onClose && (
-              <button className={styles.closeButton} onClick={onClose} aria-label="Close">
+              <button
+                className="p-2 text-text-muted hover:text-gold transition-colors duration-150"
+                onClick={onClose}
+                aria-label="Close"
+              >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
@@ -75,7 +78,7 @@ export function Modal({
             )}
           </div>
         )}
-        <div className={styles.body}>
+        <div>
           {children}
         </div>
       </div>

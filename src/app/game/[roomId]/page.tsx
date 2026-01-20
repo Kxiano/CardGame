@@ -756,19 +756,19 @@ export default function GamePage() {
         isOpen={showReplayModal && !hasVoted}
         title={t('endGame.playAgain')}
         showCloseButton={false}
-        size="sm"
+        size="md"
       >
-        <div className={styles.voteModal}>
-          <p>{t('endGame.waitingForVotes')}</p>
-          <div className={styles.voteButtons}>
+        <div className="text-center">
+          <p className="text-lg text-white/90 mb-6">{t('endGame.waitingForVotes')}</p>
+          <div className="flex gap-4 justify-center">
             <button
-              className="btn btn-success btn-lg"
+              className="btn btn-success btn-lg min-w-[120px]"
               onClick={() => handleVoteReplay(true)}
             >
               {t('common.yes')}
             </button>
             <button
-              className="btn btn-danger btn-lg"
+              className="btn btn-danger btn-lg min-w-[120px]"
               onClick={() => handleVoteReplay(false)}
             >
               {t('common.no')}

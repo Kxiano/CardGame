@@ -1,14 +1,13 @@
 'use client';
 
 import { useSound } from '@/lib/sound';
-import styles from './SoundToggle.module.css';
 
 export function SoundToggle() {
   const { isMuted, toggleMute } = useSound();
 
   return (
-    <button 
-      className={styles.button}
+    <button
+      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors duration-150 border border-white/10"
       onClick={toggleMute}
       aria-label={isMuted ? 'Unmute' : 'Mute'}
     >

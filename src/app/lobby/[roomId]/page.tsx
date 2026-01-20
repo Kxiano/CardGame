@@ -7,40 +7,39 @@ import { useSocket } from '@/lib/socket';
 import { useSound } from '@/lib/sound';
 import { useToast, LanguageSelector, SoundToggle } from '@/components/ui';
 import { Difficulty } from '@/lib/game-engine/types';
-import styles from './page.module.css';
 
 export default function LobbyPage() {
   const params = useParams();
   const roomId = params.roomId as string;
   const router = useRouter();
   const { t } = useI18n();
-  const { 
-    gameState, 
-    currentPlayer, 
-    isConnected, 
-    leaveRoom, 
-    setReady, 
-    setDifficulty, 
-    setTruco, 
+  const {
+    gameState,
+    currentPlayer,
+    isConnected,
+    leaveRoom,
+    setReady,
+    setDifficulty,
+    setTruco,
     startGame,
     reorderPlayers,
-    error 
+    error
   } = useSocket();
   const { playSound } = useSound();
   const { showToast } = useToast();
-  
+
   const [copied, setCopied] = useState(false);
   const [showStartAnimation, setShowStartAnimation] = useState(false);
   const [isFadingOut, setIsFadingOut] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   // Navigate with fade-out transition
-  const navigateToGame = () => {
+  function navigateToGame() {
     setIsFadingOut(true);
     setTimeout(() => {
       router.push(`/game/${roomId}`);
     }, 500); // Wait for fade-out animation
-  };
+  }
 
   // Redirect to game when phase changes (with animation)
   useEffect(() => {
@@ -48,7 +47,7 @@ export default function LobbyPage() {
       // Show animation first
       setShowStartAnimation(true);
       playSound('bell');
-      
+
       // Wait for video to finish (or timeout after 4s), then navigate with fade
       const timeout = setTimeout(() => {
         navigateToGame();
@@ -59,9 +58,9 @@ export default function LobbyPage() {
   }, [gameState?.phase, roomId, router, playSound]);
 
   // Handle video end - navigate with fade immediately
-  const handleVideoEnd = () => {
+  function handleVideoEnd() {
     navigateToGame();
-  };
+  }
 
   // Show error toast
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function LobbyPage() {
     }
   }, [error, showToast]);
 
-  const handleCopyCode = async () => {
+  async function handleCopyCode() {
     try {
       await navigator.clipboard.writeText(roomId);
       setCopied(true);
@@ -79,40 +78,40 @@ export default function LobbyPage() {
     } catch {
       showToast('Failed to copy', 'error');
     }
-  };
+  }
 
-  const handleLeave = () => {
+  function handleLeave() {
     playSound('click');
     leaveRoom();
     router.push('/');
-  };
+  }
 
-  const handleToggleReady = () => {
+  function handleToggleReady() {
     playSound('ready');
     setReady(!currentPlayer?.isReady);
-  };
+  }
 
-  const handleStartGame = () => {
+  function handleStartGame() {
     playSound('bell');
     startGame();
-  };
+  }
 
-  const handleDifficultyChange = (difficulty: Difficulty) => {
+  function handleDifficultyChange(difficulty: Difficulty) {
     playSound('click');
     setDifficulty(difficulty);
-  };
+  }
 
-  const handleTrucoToggle = () => {
+  function handleTrucoToggle() {
     playSound('click');
     setTruco(!gameState?.trucoEnabled);
-  };
+  }
 
-  const handleReorder = (index: number, direction: 'up' | 'down') => {
+  function handleReorder(index: number, direction: 'up' | 'down') {
     console.log('handleReorder called', { index, direction, gameState });
     if (!gameState) return;
     const newIndex = direction === 'up' ? index - 1 : index + 1;
     console.log('Calculated newIndex:', newIndex);
-    
+
     if (newIndex >= 0 && newIndex < gameState.players.length) {
       console.log('Valid move, calling reorderPlayers', { index, newIndex });
       playSound('click');
@@ -120,12 +119,12 @@ export default function LobbyPage() {
     } else {
       console.log('Invalid move', { newIndex, totalPlayers: gameState.players.length });
     }
-  };
+  }
 
   if (!isConnected || !gameState) {
     return (
-      <div className={styles.loading}>
-        <div className={styles.spinner}></div>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <div className="w-10 h-10 border-[3px] border-white/10 border-t-gold rounded-full animate-spin"></div>
         <p>{t('common.loading')}</p>
       </div>
     );
@@ -136,29 +135,29 @@ export default function LobbyPage() {
   const canStart = isDealer && allReady && gameState.players.length >= 2;
 
   return (
-    <main className={styles.main}>
+    <main className="min-h-screen flex flex-col">
       {/* Header */}
-      <header className={styles.header}>
+      <header className="flex justify-between items-center px-6 py-4">
         <button className="btn btn-secondary btn-sm" onClick={handleLeave}>
           ← {t('lobby.leave')}
         </button>
-        <div className={styles.headerRight}>
+        <div className="flex gap-3">
           <SoundToggle />
           <LanguageSelector />
         </div>
       </header>
 
-      <div className={styles.content}>
-        <div className={styles.container}>
+      <div className="flex-1 p-6 flex justify-center">
+        <div className="w-full max-w-[900px]">
           {/* Room Info */}
-          <div className={styles.roomInfo}>
-            <h1 className={styles.title}>{t('lobby.title')}</h1>
-            
-            <div className={styles.roomCode}>
-              <span className={styles.roomCodeLabel}>{t('lobby.roomCode')}</span>
-              <div className={styles.roomCodeValue}>
-                <span className={styles.code}>{roomId}</span>
-                <button 
+          <div className="text-center mb-8 flex flex-col items-center">
+            <h1 className="text-3xl mb-4 text-gold">{t('lobby.title')}</h1>
+
+            <div className="inline-flex flex-col items-center gap-2 px-6 py-4 bg-black/30 rounded-xl mb-4">
+              <span className="text-sm text-white/60">{t('lobby.roomCode')}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-3xl font-extrabold tracking-[4px] text-white font-mono">{roomId}</span>
+                <button
                   className={`btn btn-sm ${copied ? 'btn-success' : 'btn-secondary'}`}
                   onClick={handleCopyCode}
                 >
@@ -168,42 +167,41 @@ export default function LobbyPage() {
             </div>
 
             {isDealer && (
-              <span className={`badge badge-dealer ${styles.dealerBadge}`}>
+              <span className="badge badge-dealer text-sm px-3 py-1 self-center">
                 {t('lobby.youAreDealer')}
               </span>
             )}
           </div>
 
-          <div className={styles.grid}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Players List */}
-            <section className={`glass-panel ${styles.section}`}>
-              <h2 className={styles.sectionTitle}>
+            <section className="glass-panel p-6">
+              <h2 className="text-xl mb-4 text-gold">
                 {t('lobby.players')} ({gameState.players.length}/10)
               </h2>
-              
-              <div className={styles.playersList}>
+
+              <div className="flex flex-col gap-2">
                 {gameState.players.map((player, index) => (
-                  <div 
-                    key={player.id} 
-                    className={`player-item ${player.id === currentPlayer?.id ? styles.currentPlayer : ''}`}
-                    style={{ position: 'relative' }}
+                  <div
+                    key={player.id}
+                    className={`player-item relative ${player.id === currentPlayer?.id ? 'border border-gold/50' : ''}`}
                   >
                     {/* Reorder Buttons (Dealer Only) */}
                     {isDealer && gameState.players.length > 1 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', marginRight: '8px', gap: '2px' }}>
+                      <div className="flex flex-col mr-2 gap-0.5">
                         <button
-                          className="btn btn-xs btn-ghost"
+                          className="px-1 py-0 text-xs leading-none min-h-0"
                           onClick={() => handleReorder(index, 'up')}
                           disabled={index === 0}
-                          style={{ padding: '0px 4px', lineHeight: 1, minHeight: 'auto', visibility: index === 0 ? 'hidden' : 'visible' }}
+                          style={{ visibility: index === 0 ? 'hidden' : 'visible' }}
                         >
                           ▲
                         </button>
                         <button
-                          className="btn btn-xs btn-ghost"
+                          className="px-1 py-0 text-xs leading-none min-h-0"
                           onClick={() => handleReorder(index, 'down')}
                           disabled={index === gameState.players.length - 1}
-                          style={{ padding: '0px 4px', lineHeight: 1, minHeight: 'auto', visibility: index === gameState.players.length - 1 ? 'hidden' : 'visible' }}
+                          style={{ visibility: index === gameState.players.length - 1 ? 'hidden' : 'visible' }}
                         >
                           ▼
                         </button>
@@ -213,8 +211,8 @@ export default function LobbyPage() {
                     <div className="player-avatar">
                       {player.nickname.charAt(0).toUpperCase()}
                     </div>
-                    <div className={styles.playerInfo}>
-                      <span className={styles.playerName}>
+                    <div className="flex-1 flex flex-col gap-1">
+                      <span className="font-semibold">
                         {player.nickname}
                         {player.id === currentPlayer?.id && ' (You)'}
                       </span>
@@ -232,9 +230,8 @@ export default function LobbyPage() {
               {/* Ready Button */}
               {!isDealer && (
                 <button
-                  className={`btn ${currentPlayer?.isReady ? 'btn-danger' : 'btn-success'} w-full`}
+                  className={`btn ${currentPlayer?.isReady ? 'btn-danger' : 'btn-success'} w-full mt-4`}
                   onClick={handleToggleReady}
-                  style={{ marginTop: '16px' }}
                 >
                   {currentPlayer?.isReady ? t('lobby.notReady') : t('lobby.ready')}
                 </button>
@@ -242,13 +239,13 @@ export default function LobbyPage() {
             </section>
 
             {/* Settings (Dealer Only) */}
-            <section className={`glass-panel ${styles.section}`}>
-              <h2 className={styles.sectionTitle}>{t('lobby.settings')}</h2>
-              
+            <section className="glass-panel p-6">
+              <h2 className="text-xl mb-4 text-gold">{t('lobby.settings')}</h2>
+
               {/* Difficulty */}
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>{t('lobby.difficulty')}</label>
-                <div className={styles.difficultyButtons}>
+              <div className="mb-6">
+                <label className="block font-semibold mb-2 text-white/90">{t('lobby.difficulty')}</label>
+                <div className="flex gap-2">
                   {(['easy', 'normal', 'hard'] as Difficulty[]).map((diff) => (
                     <button
                       key={diff}
@@ -260,7 +257,7 @@ export default function LobbyPage() {
                     </button>
                   ))}
                 </div>
-                <p className={styles.settingDescription}>
+                <p className="text-xs text-white/50 mt-2">
                   {gameState.difficulty === 'easy' && '3 questions per round'}
                   {gameState.difficulty === 'normal' && '5 questions per round'}
                   {gameState.difficulty === 'hard' && '7 questions per round'}
@@ -268,8 +265,8 @@ export default function LobbyPage() {
               </div>
 
               {/* Truco Rule */}
-              <div className={styles.settingGroup}>
-                <label className={styles.settingLabel}>{t('lobby.trucoRule')}</label>
+              <div className="mb-6">
+                <label className="block font-semibold mb-2 text-white/90">{t('lobby.trucoRule')}</label>
                 <button
                   className={`btn ${gameState.trucoEnabled ? 'btn-success' : 'btn-secondary'}`}
                   onClick={handleTrucoToggle}
@@ -277,14 +274,14 @@ export default function LobbyPage() {
                 >
                   {gameState.trucoEnabled ? t('lobby.enabled') : t('lobby.disabled')}
                 </button>
-                <p className={styles.settingDescription}>
+                <p className="text-xs text-white/50 mt-2">
                   Allows players to bet against answers
                 </p>
               </div>
 
               {/* Start Game Button */}
               {isDealer && (
-                <div className={styles.startSection}>
+                <div className="mt-8 pt-6 border-t border-white/10">
                   <button
                     className="btn btn-primary btn-lg w-full"
                     onClick={handleStartGame}
@@ -293,10 +290,10 @@ export default function LobbyPage() {
                     {t('lobby.startGame')}
                   </button>
                   {!allReady && (
-                    <p className={styles.waitingMessage}>{t('lobby.waitingForReady')}</p>
+                    <p className="text-center text-white/50 text-sm mt-3">{t('lobby.waitingForReady')}</p>
                   )}
                   {gameState.players.length < 2 && (
-                    <p className={styles.waitingMessage}>Need at least 2 players</p>
+                    <p className="text-center text-white/50 text-sm mt-3">Need at least 2 players</p>
                   )}
                 </div>
               )}
@@ -307,7 +304,7 @@ export default function LobbyPage() {
 
       {/* Game Start Animation Overlay */}
       {showStartAnimation && (
-        <div className={`${styles.animationOverlay} ${isFadingOut ? styles.fadeOut : ''}`}>
+        <div className={`fixed inset-0 bg-black/95 flex flex-col items-center justify-center z-[9999] ${isFadingOut ? 'animate-[fadeOut_0.5s_ease_forwards]' : 'animate-[fadeIn_0.3s_ease-out]'}`}>
           <video
             ref={videoRef}
             src="/animations/game-start.webm"
@@ -315,7 +312,7 @@ export default function LobbyPage() {
             muted
             playsInline
             onEnded={handleVideoEnd}
-            className={styles.animationVideo}
+            className="max-w-[80%] max-h-[70vh] rounded-2xl shadow-[0_0_60px_rgba(212,175,55,0.4)]"
           />
         </div>
       )}

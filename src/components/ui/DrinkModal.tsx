@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Modal } from './Modal';
-import styles from './DrinkModal.module.css';
 
 interface DrinkModalProps {
   isOpen: boolean;
@@ -12,12 +11,12 @@ interface DrinkModalProps {
   onConfirm: () => void;
 }
 
-export function DrinkModal({ 
-  isOpen, 
-  amount, 
-  reason, 
+export function DrinkModal({
+  isOpen,
+  amount,
+  reason,
   sourcePlayerName,
-  onConfirm 
+  onConfirm
 }: DrinkModalProps) {
   const [countdown, setCountdown] = useState(0);
 
@@ -38,7 +37,7 @@ export function DrinkModal({
   }, [isOpen]);
 
   // Format the reason to be more user-friendly
-  const getTitle = () => {
+  function getTitle() {
     if (reason.includes('correctly')) return '😅 Others got it right!';
     if (reason.includes('incorrectly')) return '❌ Wrong answer!';
     if (reason.includes('Truco backfired')) return '🔥 Truco backfired!';
@@ -46,24 +45,24 @@ export function DrinkModal({
     if (reason.includes('Matched')) return '😱 You matched!';
     if (sourcePlayerName) return `🎁 ${sourcePlayerName} sends drinks!`;
     return '🍺 Time to drink!';
-  };
+  }
 
   return (
     <Modal isOpen={isOpen} title={getTitle()} showCloseButton={false} size="sm">
-      <div className={styles.content}>
-        <div className={styles.drinkAmount}>
-          <span className={styles.number}>{amount}</span>
-          <span className={styles.label}>{amount === 1 ? 'drink' : 'drinks'}</span>
+      <div className="flex flex-col items-center gap-6 py-4">
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-6xl font-bold text-warning">{amount}</span>
+          <span className="text-lg text-white/70">{amount === 1 ? 'drink' : 'drinks'}</span>
         </div>
-        
-        <p className={styles.reason}>{reason}</p>
-        
-        <div className={styles.glassAnimation}>
+
+        <p className="text-center text-white/80">{reason}</p>
+
+        <div className="text-6xl" style={{ animation: 'drinkBounce 0.5s ease-in-out' }}>
           🍺
         </div>
-        
+
         <button
-          className={`btn btn-primary btn-lg ${styles.confirmButton}`}
+          className="btn btn-primary btn-lg w-full"
           onClick={onConfirm}
           disabled={countdown > 0}
         >
