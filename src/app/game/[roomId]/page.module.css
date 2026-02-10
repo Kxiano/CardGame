@@ -57,9 +57,9 @@
     display: flex;
     flex-direction: column;
     gap: 0;
-    padding: 0 8px 100px;
+    padding: 0 8px 80px;
+    overflow-y: auto;
     /* bottom padding accounts for fixed SwipeableDrawer collapsed height */
-    overflow: hidden;
     min-height: 0;
     /* Allow flex children to shrink */
 }

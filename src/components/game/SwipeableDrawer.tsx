@@ -16,10 +16,10 @@ interface SwipeableDrawerProps {
 // Get wasted status based on drink count
 function getWastedStatus(drinks: number): { label: string; color: string } {
   if (drinks === 0) return { label: 'Sober', color: '#4ecdc4' };
-  if (drinks <= 2) return { label: 'Tipsy', color: '#a8e6cf' };
-  if (drinks <= 4) return { label: 'Buzzed', color: '#f0d77c' };
-  if (drinks <= 7) return { label: 'Drunk', color: '#ff8c00' };
-  if (drinks <= 10) return { label: 'Wasted', color: '#ff6b6b' };
+  if (drinks <= 10) return { label: 'Tipsy', color: '#a8e6cf' };
+  if (drinks <= 20) return { label: 'Buzzed', color: '#f0d77c' };
+  if (drinks <= 30) return { label: 'Drunk', color: '#ff8c00' };
+  if (drinks <= 40) return { label: 'Wasted', color: '#ff6b6b' };
   return { label: 'Destroyed', color: '#ff0040' };
 }
 
@@ -304,7 +304,7 @@ export function SwipeableDrawer({
                     )}
                   </div>
 
-                  {/* Name + Status */}
+                  {/* Name + Status + Drink Badge */}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{
@@ -338,16 +338,32 @@ export function SwipeableDrawer({
                         }}>(You)</span>
                       )}
                     </div>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: wastedStatus.color,
-                      fontWeight: 600,
-                    }}>
-                      {wastedStatus.label}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: wastedStatus.color,
+                        fontWeight: 600,
+                      }}>
+                        {wastedStatus.label}
+                      </span>
+                      <span style={{
+                        fontSize: '0.6rem',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                      }}>•</span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        color: '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 2,
+                      }}>
+                        🍺 {player.drinks}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Card Stack (mini) */}
+                  {/* Card Stack (full hand with 75% overlap) */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -355,11 +371,11 @@ export function SwipeableDrawer({
                   }}>
                     {player.hand.length > 0 ? (
                       <div style={{ display: 'flex', position: 'relative' }}>
-                        {player.hand.slice(0, 3).map((card, idx) => (
+                        {player.hand.map((card, idx) => (
                           <div
                             key={card.id}
                             style={{
-                              marginLeft: idx === 0 ? 0 : -18,
+                              marginLeft: idx === 0 ? 0 : -22,
                               zIndex: idx,
                               position: 'relative',
                             }}
@@ -367,22 +383,6 @@ export function SwipeableDrawer({
                             <PlayingCard card={card} size="xxs" />
                           </div>
                         ))}
-                        {player.hand.length > 3 && (
-                          <span style={{
-                            position: 'absolute',
-                            right: -6,
-                            bottom: -2,
-                            fontSize: '0.55rem',
-                            fontWeight: 700,
-                            color: '#fff',
-                            background: 'rgba(0,0,0,0.7)',
-                            padding: '0 3px',
-                            borderRadius: 3,
-                            zIndex: 10,
-                          }}>
-                            +{player.hand.length - 3}
-                          </span>
-                        )}
                       </div>
                     ) : (
                       <span style={{
@@ -393,32 +393,6 @@ export function SwipeableDrawer({
                         No cards
                       </span>
                     )}
-                  </div>
-
-                  {/* Separator line */}
-                  <div style={{
-                    width: 1,
-                    height: 28,
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    flexShrink: 0,
-                  }} />
-
-                  {/* Drink Count */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    flexShrink: 0,
-                    minWidth: 36,
-                  }}>
-                    <span style={{ fontSize: '1rem' }}>🍺</span>
-                    <span style={{
-                      fontWeight: 700,
-                      fontSize: '0.9rem',
-                      color: '#fff',
-                    }}>
-                      {player.drinks}
-                    </span>
                   </div>
                 </div>
               );

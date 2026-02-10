@@ -100,12 +100,7 @@ export function QuestionPhase({
                   }
                 `}
               >
-                <div className="flex flex-col items-center gap-1">
-                  <span className="text-3xl font-black">
-                    {isEven ? '2' : '1'}
-                  </span>
-                  <span className="text-sm uppercase tracking-widest font-semibold">{option}</span>
-                </div>
+                <span className="text-xl uppercase tracking-widest font-semibold">{option}</span>
               </button>
             );
           })}

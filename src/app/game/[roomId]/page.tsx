@@ -405,9 +405,6 @@ export default function GamePage() {
                 <h3 className="text-3xl font-black text-white">
                   {currentQuestion.text[locale as keyof typeof currentQuestion.text] || currentQuestion.text.en}
                 </h3>
-                <p className="text-white/60 text-sm mt-2">
-                  Predict if the next card value is even or odd
-                </p>
               </div>
 
               {/* Face-down Card Preview */}
@@ -436,12 +433,7 @@ export default function GamePage() {
                           }
                         `}
                       >
-                        <div className="flex flex-col items-center gap-1">
-                          <span className="text-2xl font-mono border border-current rounded px-2 py-0.5">
-                            {isEven ? '2' : '1'}
-                          </span>
-                          <span className="uppercase tracking-wider">{option}</span>
-                        </div>
+                        <span className="uppercase tracking-wider text-xl">{option}</span>
                       </button>
                     );
                   })}

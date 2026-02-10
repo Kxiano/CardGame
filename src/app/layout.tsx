@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   description: "A multiplayer drinking card game for 2-10 players. Create rooms, answer questions, and have fun with friends!",
   keywords: ["card game", "drinking game", "multiplayer", "party game", "xerekinha"],
   authors: [{ name: "Xerekinha Team" }],
+  themeColor: "#0a1f15",
   icons: {
     icon: "/favicon.png",
     apple: "/favicon.png",
@@ -36,6 +37,10 @@ export const metadata: Metadata = {
     description: "A multiplayer drinking card game for 2-10 players",
     images: ["/favicon.png"],
   },
+  other: {
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'black-translucent',
+  },
 };
 
 export default function RootLayout({
@@ -45,11 +50,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <meta name="theme-color" content="#0a1f15" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
       <body className={inter.className}>
         <Script src="/cardmeister.min.js" strategy="beforeInteractive" />
         <Providers>
