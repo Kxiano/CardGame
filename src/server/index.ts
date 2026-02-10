@@ -92,11 +92,14 @@ function emitDrinkEvent(io: SocketIOServer, roomId: string, event: DrinkEvent) {
   
   room.gameState.drinkEvents.push(event);
   
-  // Update player drink counts
-  for (const playerId of event.targetPlayerIds) {
-    const player = room.gameState.players.find(p => p.id === playerId);
-    if (player) {
-      player.drinks += event.amount;
+  // Only update drink counts for events that actually require drinking
+  // 'excited' and 'notification' are informational only — no drinks added
+  if (event.type !== 'excited' && event.type !== 'notification' && event.type !== 'success') {
+    for (const playerId of event.targetPlayerIds) {
+      const player = room.gameState.players.find(p => p.id === playerId);
+      if (player) {
+        player.drinks += event.amount;
+      }
     }
   }
   
