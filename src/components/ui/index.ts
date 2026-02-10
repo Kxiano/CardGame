@@ -1,3 +1,5 @@
+export { Button } from './Button';
+export { Input } from './Input';
 export { PlayingCard, CardPlaceholder } from './PlayingCard';
 export { LanguageSelector } from './LanguageSelector';
 export { SoundToggle } from './SoundToggle';

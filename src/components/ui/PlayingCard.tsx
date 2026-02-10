@@ -6,9 +6,10 @@ import styles from './PlayingCard.module.css';
 
 interface PlayingCardProps {
   card: Card;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg';
   onClick?: () => void;
   highlighted?: boolean;
+  animation?: 'flipIn' | 'flipReveal';
   className?: string;
 }
 
@@ -30,6 +31,8 @@ function getSuitName(suit: string): string {
 
 // Card dimensions for each size
 const cardSizes = {
+  xxs: { width: '36px', height: '50px' },
+  xs: { width: '50px', height: '70px' },
   sm: { width: '70px', height: '98px' },
   md: { width: '90px', height: '126px' },
   lg: { width: '110px', height: '154px' },
@@ -40,6 +43,7 @@ export function PlayingCard({
   size = 'md', 
   onClick, 
   highlighted = false,
+  animation,
   className = '' 
 }: PlayingCardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -71,6 +75,8 @@ export function PlayingCard({
   }, [card.faceUp, card.value, card.suit, dimensions]);
 
   const sizeClasses = {
+    xxs: styles.cardXxs,
+    xs: styles.cardXs,
     sm: styles.cardSm,
     md: styles.cardMd,
     lg: styles.cardLg,
@@ -85,6 +91,7 @@ export function PlayingCard({
         ${card.faceUp ? styles.faceUpCardmeister : styles.faceDown}
         ${highlighted ? styles.highlighted : ''}
         ${onClick ? styles.clickable : ''}
+        ${animation ? styles[animation] : ''}
         ${className}
       `}
       onClick={onClick}

@@ -3,20 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --hostname 0.0.0.0",
     "dev:server": "npx tsx src/server/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --hostname 0.0.0.0",
     "start:server": "npx tsx src/server/index.ts",
+    "start:all": "concurrently \"npm run start\" \"npm run start:server\"",
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/canvas-confetti": "^1.9.0",
     "@types/howler": "^2.2.12",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/uuid": "^10.0.0",
+    "canvas-confetti": "^1.9.4",
     "concurrently": "^9.2.1",
     "howler": "^2.2.4",
     "next": "16.1.0",
@@ -30,7 +33,11 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "autoprefixer": "^10.4.23",
     "eslint": "^9",
-    "eslint-config-next": "16.1.0"
+    "eslint-config-next": "16.1.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.0.0"
   }
 }

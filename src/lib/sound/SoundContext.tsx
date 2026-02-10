@@ -16,11 +16,12 @@ export type SoundEffect =
   | 'cardDeal'
   | 'correct'
   | 'wrong'
-  | 'drink'
   | 'truco'
   | 'bell'
   | 'success'
-  | 'click';
+  | 'click'
+  | 'drink'
+  | 'ready';
 
 const SoundContext = createContext<SoundContextType | null>(null);
 
@@ -38,11 +39,12 @@ const soundConfigs: Record<SoundEffect, { src: string; volume?: number }> = {
   cardDeal: { src: '/sounds/card-deal.mp3', volume: 0.4 },
   correct: { src: '/sounds/correct.mp3', volume: 0.6 },
   wrong: { src: '/sounds/wrong.mp3', volume: 0.6 },
-  drink: { src: '/sounds/drink.mp3', volume: 0.7 },
   truco: { src: '/sounds/truco.mp3', volume: 0.8 },
   bell: { src: '/sounds/bell.mp3', volume: 0.5 },
   success: { src: '/sounds/success.mp3', volume: 0.6 },
   click: { src: '/sounds/click.mp3', volume: 0.3 },
+  drink: { src: '/sounds/faah.mp3', volume: 0.7 },
+  ready: { src: '/sounds/tome.mp3', volume: 0.6 },
 };
 
 interface SoundProviderProps {

@@ -1,0 +1,159 @@
+/* Custom Utility Classes */
+@layer utilities {
+  /* Text Colors */
+  .text-gold {
+    color: var(--color-gold);
+  }
+
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+
+  .text-success {
+    color: var(--color-success);
+  }
+
+  .text-danger {
+    color: var(--color-danger);
+  }
+
+  .text-warning {
+    color: var(--color-warning);
+  }
+
+  /* Background Colors */
+  .bg-primary {
+    background-color: var(--color-bg-primary);
+  }
+
+  .bg-secondary {
+    background-color: var(--color-bg-secondary);
+  }
+
+  .bg-gold {
+    background-color: var(--color-gold);
+  }
+
+  .bg-glass-bg {
+    background-color: var(--color-glass-bg);
+  }
+
+  /* Border Colors */
+  .border-gold {
+    border-color: var(--color-gold);
+  }
+
+  .border-glass-border {
+    border-color: var(--color-glass-border);
+  }
+
+  .border-success {
+    border-color: var(--color-success);
+  }
+
+  .border-danger {
+    border-color: var(--color-danger);
+  }
+
+  .border-warning {
+    border-color: var(--color-warning);
+  }
+
+  .border-text-muted {
+    border-color: var(--color-text-muted);
+  }
+}
+
+/* Keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes cardFlip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(90deg);
+  }
+  100% {
+    transform: rotateY(0deg);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--color-gold);
+  }
+  50% {
+    box-shadow: 0 0 20px var(--color-gold), 0 0 30px var(--color-gold);
+  }
+}
+
+@keyframes drinkBounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}

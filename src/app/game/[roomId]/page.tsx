@@ -5,7 +5,10 @@ import { useRouter, useParams } from 'next/navigation';
 import { useI18n, Locale } from '@/lib/i18n';
 import { useSocket } from '@/lib/socket';
 import { useSound } from '@/lib/sound';
-import { useToast, PlayingCard, Modal, SoundToggle, LanguageSelector } from '@/components/ui';
+import { useToast, PlayingCard, Modal } from '@/components/ui';
+import { GameHeader, SwipeableDrawer } from '@/components/game';
+import { useModalQueue } from '@/lib/modal';
+import { SuccessModal, DrinkModal, OtherPlayerResultModal, GiftSelectionModal, NoMatchModal, PyramidMatchModal, OtherPlayerDrinkModal, GiftReceivedModal, OtherPlayerGiftingModal, SomeoneIsDrinkingModal } from '@/components/modals';
 import { getCurrentQuestion, getQuestionCount } from '@/lib/game-engine/questions';
 import { Player, DrinkEvent } from '@/lib/game-engine/types';
 import styles from './page.module.css';
@@ -33,10 +36,147 @@ export default function GamePage() {
   } = useSocket();
   const { playSound } = useSound();
   const { showToast, showDrinkToast } = useToast();
+  const { enqueueModal, dismissModal, isModalOpen } = useModalQueue();
 
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([]);
   const [showReplayModal, setShowReplayModal] = useState(false);
   const [hasVoted, setHasVoted] = useState(false);
+  
+  // New modal state for redesigned modals
+  const [activeModal, setActiveModal] = useState<'success' | 'drink' | 'otherResult' | 'gift' | 'noMatch' | 'pyramidMatch' | 'otherPlayerDrink' | 'giftReceived' | 'otherPlayerGifting' | 'someoneIsDrinking' | null>(null);
+  const [modalData, setModalData] = useState<{
+    prediction?: string;
+    result?: string;
+    card?: DrinkEvent['card'] | null;
+    playerName?: string;
+    otherPlayers?: Player[];
+    drinksToGive?: number;
+    rowNumber?: number;
+    matchingPlayerHand?: DrinkEvent['card'][];
+  }>({});
+
+  // Determine modal type based on pendingDrink
+  useEffect(() => {
+    if (!pendingDrink || !gameState) {
+      setActiveModal(null);
+      return;
+    }
+
+    const reason = pendingDrink.reason || '';
+    const isWrongAnswer = reason.includes('answered incorrectly') || reason.includes('Wrong answer');
+    const isOtherPlayerCorrect = reason.includes('answered correctly');
+    const isGiftRow = reason.includes('gift Row');
+    const isTrucoBackfired = reason.includes('Truco backfired');
+    const isNoMatch = reason.includes('No matches');
+
+    // Get last answer info for prediction/result display
+    const lastAnswer = gameState.lastAnswer;
+    const prediction = lastAnswer?.answer || '';
+    const result = lastAnswer?.correct ? prediction : (prediction.toLowerCase() === 'even' ? 'Odd' : 'Even');
+    const card = pendingDrink.card || lastAnswer?.card || null;
+
+    // FIRST: Check for success type (you answered correctly!)
+    if (pendingDrink.type === 'success') {
+      // Get other players who will drink
+      const otherPlayers = gameState.players.filter(p => p.id !== currentPlayer?.id);
+      setActiveModal('success');
+      setModalData({
+        prediction,
+        result: prediction, // Correct answer means prediction = result
+        card: card,
+        otherPlayers: otherPlayers,
+      });
+    }
+    // Notification type (someone else is drinking - spectator view)
+    // Must be checked BEFORE reason-based checks since notification events also have "answered incorrectly" reason
+    else if (pendingDrink.type === 'notification') {
+      setActiveModal('someoneIsDrinking');
+      setModalData({
+        playerName: pendingDrink.sourcePlayerName || '',
+        card: card,
+      });
+    }
+    // Gift row - use GiftSelectionModal
+    else if (isGiftRow) {
+      setActiveModal('gift');
+      setModalData({
+        drinksToGive: pendingDrink.amount,
+        card: card,
+      });
+    }
+    // Wrong answer - you drink
+    else if (isWrongAnswer || isTrucoBackfired) {
+      setActiveModal('drink');
+      setModalData({
+        prediction,
+        result,
+        card: card,
+      });
+    }
+    // Other player correct - you drink
+    else if (isOtherPlayerCorrect) {
+      setActiveModal('otherResult');
+      setModalData({
+        playerName: pendingDrink.sourcePlayerName || '',
+        prediction,
+        result,
+        card: card,
+      });
+    }
+    // No matches during pyramid revelation - you drink
+    else if (isNoMatch) {
+      setActiveModal('noMatch');
+      setModalData({
+        card: card,
+      });
+    }
+    // Pyramid drink row match - check if reason is "Matched card in Row X!" (not gift row)
+    else if (reason.includes('Matched card in Row') && !reason.includes('gift')) {
+      // Extract row number from reason
+      const rowMatch = reason.match(/Row (\d+)/);
+      const rowNumber = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+      
+      setActiveModal('pyramidMatch');
+      setModalData({
+        card: card,
+        rowNumber: rowNumber,
+      });
+    }
+    // Other player matched in drink row - notification for non-matching players
+    else if (reason.includes('matched in drink Row')) {
+      // Extract row number from reason
+      const rowMatch = reason.match(/Row (\d+)/);
+      const rowNumber = rowMatch ? parseInt(rowMatch[1], 10) : 0;
+      
+      // Find the matching player's hand if available
+      const matchingPlayerName = pendingDrink.sourcePlayerName || '';
+      const matchingPlayer = gameState.players.find(p => p.nickname === matchingPlayerName.split(' & ')[0]);
+      
+      setActiveModal('otherPlayerDrink');
+      setModalData({
+        card: card,
+        rowNumber: rowNumber,
+        playerName: matchingPlayerName,
+        matchingPlayerHand: matchingPlayer?.hand || [],
+      });
+    }
+    // Received drinks from gift row distribution
+    else if (reason.includes('sharing the love')) {
+      setActiveModal('giftReceived');
+      setModalData({
+        playerName: pendingDrink.sourcePlayerName || '',
+        card: card,
+      });
+    }
+    // Other player matched in gift row - they're choosing who to give drinks
+    else if (reason.includes('getting excited')) {
+      setActiveModal('otherPlayerGifting');
+      setModalData({
+        playerName: pendingDrink.sourcePlayerName || '',
+        drinksToGive: pendingDrink.amount,
+      });
+    }
+  }, [pendingDrink, gameState]);
 
   // Play sound when pendingDrink changes
   useEffect(() => {
@@ -46,6 +186,7 @@ export default function GamePage() {
   }, [pendingDrink, playSound]);
 
   const handleConfirmDrink = () => {
+    setActiveModal(null);
     clearPendingDrink();
   };
 
@@ -155,74 +296,14 @@ export default function GamePage() {
   return (
     <main className={styles.main}>
       {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerLeft}>
-          <span className={styles.phase}>
-            {gameState.phase === 'questions' && t('game.questionPhase')}
-            {gameState.phase === 'revelation' && t('game.revelationPhase')}
-            {gameState.phase === 'ended' && t('endGame.title')}
-          </span>
-        </div>
-        <div className={styles.headerRight}>
-          <SoundToggle />
-          <LanguageSelector />
-        </div>
-      </header>
+      <GameHeader
+        phase={gameState.phase as 'questions' | 'revelation' | 'ended'}
+        roundNumber={gameState.currentQuestionIndex + 1}
+        totalRounds={questionCount}
+      />
 
       <div className={`${styles.gameArea} ${gameState.phase === 'questions' ? styles.questionsPhase : ''} ${gameState.phase === 'revelation' ? styles.revelationPhase : ''}`}>
-        {/* Left Panel - Player Hands */}
-        <aside className={styles.playersPanel}>
-          <h3 className={styles.panelTitle}>{t('game.otherPlayers')}</h3>
-          <div className={styles.playersList}>
-            {gameState.players.map((player) => (
-              <div
-                key={player.id}
-                className={`${styles.playerCard} ${
-                  currentTurnPlayer?.id === player.id ? styles.currentTurn : ''
-                } ${
-                  selectedPlayers.includes(player.id) ? styles.selected : ''
-                }`}
-                onClick={() => {
-                  if (currentPlayer?.drinksToDistribute && player.id !== currentPlayer.id) {
-                    togglePlayerSelection(player.id);
-                  }
-                }}
-              >
-                <div className={styles.playerHeader}>
-                  <div className="player-avatar">
-                    {player.nickname.charAt(0).toUpperCase()}
-                  </div>
-                  <div className={styles.playerInfo}>
-                    <span className={styles.playerName}>
-                      {player.nickname}
-                      {player.id === currentPlayer?.id && ' (You)'}
-                    </span>
-                    <div className={styles.playerStats}>
-                      <span className="drink-counter">🍺 {player.drinks}</span>
-                      {player.drinksToDistribute > 0 && (
-                        <span className={styles.toDistribute}>
-                          🎁 {player.drinksToDistribute}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {player.isDealer && (
-                    <span className="badge badge-dealer">{t('common.dealer')}</span>
-                  )}
-                </div>
-                {/* Show all players' hands */}
-                <div className={styles.playerHand}>
-                  {player.hand.map((card) => (
-                    <PlayingCard key={card.id} card={card} size="sm" />
-                  ))}
-                  {player.hand.length === 0 && (
-                    <span className={styles.noCards}>No cards yet</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </aside>
+
 
         {/* Center - Game Table */}
         <div className={styles.tableArea}>
@@ -246,7 +327,7 @@ export default function GamePage() {
                         <PlayingCard
                           key={card.id}
                           card={card}
-                          size="md"
+                          size="xs"
                         />
                       ))}
                       {/* For top row with many cards, show stacked with counter */}
@@ -254,7 +335,7 @@ export default function GamePage() {
                         <div className={styles.stackedCards}>
                           <PlayingCard
                             card={{ id: 'stack', suit: 'spades', value: 1, faceUp: false }}
-                            size="md"
+                            size="xs"
                             highlighted={
                               gameState.phase === 'revelation' &&
                               rowIdx === gameState.currentPyramidRow
@@ -270,7 +351,7 @@ export default function GamePage() {
                             <PlayingCard
                               key={card.id}
                               card={card}
-                              size="md"
+                              size="xs"
                               highlighted={
                                 gameState.phase === 'revelation' &&
                                 rowIdx === gameState.currentPyramidRow &&
@@ -289,38 +370,81 @@ export default function GamePage() {
 
           {/* Question Phase */}
           {gameState.phase === 'questions' && currentQuestion && (
-            <div className={styles.questionSection}>
-              <div className={styles.questionInfo}>
-                <span className={styles.questionNumber}>
-                  {t('game.question', {
-                    current: gameState.currentQuestionIndex + 1,
-                    total: questionCount,
-                  })}
+            <div className="flex flex-col items-center gap-6 w-full max-w-md mx-auto px-4">
+              {/* Current Turn Section */}
+              <div className="text-center">
+                <span className="text-sm text-white/50 uppercase tracking-wider">
+                  Current Turn
                 </span>
+                <h2 className="text-2xl font-bold text-white mt-1">
+                  {currentTurnPlayer?.nickname || ''}
+                </h2>
                 {isMyTurn ? (
-                  <span className={styles.yourTurn}>{t('game.yourTurn')}</span>
+                  <span className="inline-block mt-2 px-3 py-1 bg-gold/20 text-gold text-sm font-semibold rounded-full">
+                    {t('game.yourTurn')}
+                  </span>
                 ) : (
-                  <span className={styles.waiting}>
+                  <span className="text-white/60 text-sm mt-2 block">
                     {t('game.waitingFor', { name: currentTurnPlayer?.nickname || '' })}
                   </span>
                 )}
               </div>
 
-              <p className={styles.questionText}>
-                {currentQuestion.text[locale as keyof typeof currentQuestion.text] || currentQuestion.text.en}
-              </p>
+              {/* Prediction Badge */}
+              <div className="inline-block px-4 py-1.5 bg-gold/20 border border-gold/40 rounded-full">
+                <span className="text-gold text-sm font-semibold uppercase tracking-wide">
+                  {t('game.question', {
+                    current: gameState.currentQuestionIndex + 1,
+                    total: questionCount,
+                  })}
+                </span>
+              </div>
 
+              {/* Question Text */}
+              <div className="text-center">
+                <h3 className="text-3xl font-black text-white">
+                  {currentQuestion.text[locale as keyof typeof currentQuestion.text] || currentQuestion.text.en}
+                </h3>
+                <p className="text-white/60 text-sm mt-2">
+                  Predict if the next card value is even or odd
+                </p>
+              </div>
+
+              {/* Face-down Card Preview */}
+              <div className="my-4">
+                <PlayingCard
+                  card={{ id: 'mystery', suit: 'spades', value: 1, faceUp: false }}
+                  size="lg"
+                />
+              </div>
+
+              {/* Answer Buttons */}
               {isMyTurn && !gameState.awaitingTruco && (
-                <div className={styles.answerButtons}>
-                  {(currentQuestion.options[locale as keyof typeof currentQuestion.options] || currentQuestion.options.en).map((option) => (
-                    <button
-                      key={option}
-                      className="btn btn-primary"
-                      onClick={() => handleAnswer(option)}
-                    >
-                      {option}
-                    </button>
-                  ))}
+                <div className="flex gap-4 w-full">
+                  {(currentQuestion.options[locale as keyof typeof currentQuestion.options] || currentQuestion.options.en).map((option, index) => {
+                    const isEven = index === 0;
+                    return (
+                      <button
+                        key={option}
+                        onClick={() => handleAnswer(option)}
+                        className={`
+                          flex-1 py-5 rounded-xl font-bold text-lg
+                          transition-all duration-200
+                          ${isEven
+                            ? 'bg-[#1a5f3c] hover:bg-[#2d8a56] text-white border-2 border-[#2d8a56]'
+                            : 'bg-gold hover:bg-gold-light text-gray-900'
+                          }
+                        `}
+                      >
+                        <div className="flex flex-col items-center gap-1">
+                          <span className="text-2xl font-mono border border-current rounded px-2 py-0.5">
+                            {isEven ? '2' : '1'}
+                          </span>
+                          <span className="uppercase tracking-wider">{option}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
 
@@ -333,19 +457,25 @@ export default function GamePage() {
                   : gameState.lastAnswer.answer;
                 
                 return (
-                  <div className={`${styles.lastAnswer} ${gameState.lastAnswer.correct ? styles.correct : styles.incorrect}`}>
-                    <p>
+                  <div className={`w-full p-4 rounded-xl border-2 text-center ${
+                    gameState.lastAnswer.correct 
+                      ? 'bg-success/20 border-success' 
+                      : 'bg-danger/20 border-danger'
+                  }`}>
+                    <p className="text-white/90">
                       {t('game.playerAnswered', { 
                         name: gameState.lastAnswer.playerName, 
                         answer: translatedAnswer 
                       })}
                     </p>
                     {gameState.lastAnswer.card && gameState.lastAnswer.card.faceUp && (
-                      <div className={styles.revealedCard}>
+                      <div className="flex justify-center my-3">
                         <PlayingCard card={gameState.lastAnswer.card} size="lg" />
                       </div>
                     )}
-                    <p className={styles.answerResult}>
+                    <p className={`font-bold text-lg ${
+                      gameState.lastAnswer.correct ? 'text-success' : 'text-danger'
+                    }`}>
                       {gameState.lastAnswer.correct ? t('game.correctResult') : t('game.wrongResult')}
                     </p>
                   </div>
@@ -361,34 +491,36 @@ export default function GamePage() {
                   : gameState.lastAnswer.answer;
                 
                 return (
-                  <div className={styles.trucoWaiting}>
-                    <p>
+                  <div className="w-full p-4 rounded-xl bg-warning/20 border-2 border-warning text-center">
+                    <p className="text-white/90">
                       {t('game.playerAnswered', { 
                         name: gameState.lastAnswer.playerName, 
                         answer: translatedAnswer 
                       })}
                     </p>
-                    <p className={styles.waitingForTruco}>{t('game.chooseTruco')}</p>
+                    <p className="text-warning font-semibold mt-2 animate-pulse">
+                      {t('game.chooseTruco')}
+                    </p>
                   </div>
                 );
               })()}
 
               {/* Truco Phase - Voting */}
               {gameState.awaitingTruco && (
-                <div className={styles.trucoSection}>
+                <div className="w-full text-center space-y-4">
                   {/* Show buttons only if current player hasn't decided and it's not their turn */}
                   {!isMyTurn && gameState.trucoEnabled && 
                    !gameState.trucoVotes.some(v => v.playerId === currentPlayer?.id) &&
                    !gameState.trucoSkips?.includes(currentPlayer?.id || '') && (
-                    <div className={styles.trucoButtons}>
+                    <div className="flex gap-4 justify-center">
                       <button
-                        className={`btn btn-danger btn-lg ${styles.trucoButton}`}
+                        className="flex-1 max-w-[140px] py-4 px-6 rounded-xl font-bold text-lg bg-danger hover:bg-danger/80 text-white transition-all"
                         onClick={handleCallTruco}
                       >
                         🔥 {t('game.truco')}
                       </button>
                       <button
-                        className="btn btn-secondary btn-lg"
+                        className="flex-1 max-w-[140px] py-4 px-6 rounded-xl font-bold text-lg bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all"
                         onClick={handleSkipTruco}
                       >
                         ✓ Pass
@@ -399,7 +531,7 @@ export default function GamePage() {
                   {/* Show decision made */}
                   {!isMyTurn && (gameState.trucoVotes.some(v => v.playerId === currentPlayer?.id) ||
                    gameState.trucoSkips?.includes(currentPlayer?.id || '')) && (
-                    <p className={styles.decisionMade}>
+                    <p className="text-lg font-semibold text-white/80">
                       {gameState.trucoVotes.some(v => v.playerId === currentPlayer?.id) 
                         ? '🔥 You called Truco!'
                         : '✓ You passed'
@@ -409,9 +541,9 @@ export default function GamePage() {
                   
                   {/* Show Truco calls */}
                   {gameState.trucoVotes.length > 0 && (
-                    <div className={styles.trucoVotes}>
+                    <div className="flex flex-wrap gap-2 justify-center">
                       {gameState.trucoVotes.map(vote => (
-                        <span key={vote.playerId} className={styles.trucoVote}>
+                        <span key={vote.playerId} className="px-3 py-1 bg-danger/30 border border-danger rounded-full text-danger text-sm font-semibold">
                           {t('game.trucoCalled', { name: vote.playerName })}
                         </span>
                       ))}
@@ -422,20 +554,25 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* Revelation Phase */}
+          {/* Revelation Phase - Revealed Card & Button */}
           {gameState.phase === 'revelation' && (
-            <div className={styles.revelationSection}>
-              <h3>{t('game.revelationPhase')}</h3>
-              
+            <div className="flex flex-col items-center gap-2 w-full px-2 py-1 flex-shrink-0">
+              {/* Currently Revealed Card */}
               {gameState.revealedCard && (
-                <div className={styles.revealedCard}>
-                  <PlayingCard card={gameState.revealedCard} size="lg" />
+                <div className="flex flex-col items-center justify-center gap-2 w-full">
+                  <span className="text-xs text-white/50 uppercase tracking-wider text-center pb-4">
+                    Revealed Card
+                  </span>
+                  <div className="flex justify-center w-full">
+                    <PlayingCard card={gameState.revealedCard} size="sm" />
+                  </div>
                 </div>
               )}
 
+              {/* Dealer Reveal Button */}
               {isDealer && (
                 <button
-                  className="btn btn-primary btn-lg"
+                  className="px-6 py-3 rounded-xl font-bold text-base text-gray-900 bg-gold hover:bg-gold-light transition-all shadow-lg"
                   onClick={handleRevealCard}
                 >
                   {t('game.revealCard')}
@@ -444,13 +581,13 @@ export default function GamePage() {
 
               {/* Distribute Drinks */}
               {currentPlayer && currentPlayer.drinksToDistribute > 0 && (
-                <div className={styles.distributeSection}>
-                  <p className={styles.distributeMessage}>
-                    {t('game.youHaveDrinks', { count: currentPlayer.drinksToDistribute })}
+                <div className="w-full p-4 rounded-xl bg-gold/20 border-2 border-gold text-center space-y-3">
+                  <p className="text-gold text-xl font-bold">
+                    🎁 {t('game.youHaveDrinks', { count: currentPlayer.drinksToDistribute })}
                   </p>
-                  <p className="text-muted">{t('game.selectPlayer')}</p>
+                  <p className="text-white/60 text-sm">{t('game.selectPlayer')}</p>
                   <button
-                    className="btn btn-primary"
+                    className="px-6 py-3 rounded-xl font-bold text-gray-900 bg-gold hover:bg-gold-light transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={handleDistribute}
                     disabled={selectedPlayers.length === 0}
                   >
@@ -507,268 +644,40 @@ export default function GamePage() {
             </div>
           </aside>
         )}
-      </div>
 
-      {/* Drink Notification Overlay */}
-      {pendingDrink && (() => {
-        const reason = pendingDrink.reason;
-        const isWrongAnswer = reason.includes('incorrectly');
-        const isGiftRow = pendingDrink.type === 'distribute';
-        const isExcited = pendingDrink.type === 'excited';
-        const isTrucoBackfired = reason.includes('Truco backfired');
-        const isOtherPlayerCorrect = reason.includes('answered correctly');
-        const isReceivedGift = reason.includes('sharing'); // Received gift from another player
-        
-        // Use sourcePlayerName from drink event, fallback to extracting from reason
-        const playerName = pendingDrink.sourcePlayerName || (() => {
-          const match = reason.match(/^(\S+)/);
-          return match ? match[1] : '';
-        })();
-        
-        // Get translated reason
-        const getTranslatedReason = () => {
-          if (isExcited) {
-            // amount > 1 means multiple players are excited
-            return pendingDrink.amount > 1
-              ? t('notifications.gettingExcitedPlural', { playerName: playerName || 'Someone' })
-              : t('notifications.gettingExcited', { playerName: playerName || 'Someone' });
-          } else if (isReceivedGift) {
-            return t('notifications.receivedGift', { playerName: playerName || 'Someone' });
-          } else if (isTrucoBackfired) {
-            return t('notifications.trucoBackfired', { playerName: playerName || 'Someone' });
-          } else if (isWrongAnswer) {
-            return t('notifications.youAnsweredIncorrectly');
-          } else if (isOtherPlayerCorrect) {
-            return t('notifications.othersAnsweredCorrectly', { playerName });
-          } else if (reason.includes('Matched card') && reason.includes('gift')) {
-            return t('notifications.giftRowMatch');
-          } else if (reason.includes('Matched card')) {
-            return t('notifications.matchedCard');
-          } else if (reason.includes('No matches')) {
-            return t('notifications.noMatches');
-          }
-          return reason;
-        };
-        
-        // Other players for gift distribution
-        const otherPlayers = gameState?.players.filter(p => p.id !== currentPlayer?.id) || [];
-        
-        // Determine emoji based on event type
-        const getEmoji = () => {
-          if (isGiftRow) return '💝';
-          if (isExcited) return '👀';
-          if (isReceivedGift) return '💕';
-          return '🍺';
-        };
-        
-        // Determine content class
-        const getContentClass = () => {
-          if (isGiftRow) return styles.giftContent;
-          if (isExcited) return styles.excitedContent;
-          if (isReceivedGift) return styles.receivedGiftContent;
-          return '';
-        };
-        
-        return (
-          <div className={styles.drinkOverlay}>
-            <div className={`${styles.drinkContent} ${getContentClass()}`}>
-              {/* Animated emoji based on type */}
-              <div className={isGiftRow ? styles.giftEmoji : (isExcited ? styles.excitedEmoji : styles.drinkEmoji)}>
-                {getEmoji()}
-              </div>
-              
-              {/* Show the revealed/matched card if present - but NOT for excited overlay */}
-              {pendingDrink.card && !isExcited && (
-                <div className={styles.drinkCardPreview}>
-                  <PlayingCard
-                    card={{...pendingDrink.card, faceUp: true}}
-                    size="md"
-                  />
-                </div>
-              )}
-              
-              {/* Don't show amount for 'excited' type - just watching */}
-              {!isExcited && (
-                <>
-                  <div className={styles.drinkAmount}>
-                    {isGiftRow ? `+${pendingDrink.amount}` : pendingDrink.amount}
-                  </div>
-                  <div className={styles.drinkLabel}>
-                    {isGiftRow 
-                      ? t('notifications.drinksToGive')
-                      : (pendingDrink.amount === 1 
-                          ? t('notifications.drinkSingular') 
-                          : t('notifications.drinkPlural'))}
-                  </div>
-                </>
-              )}
-              
-              <p className={styles.drinkReason}>{getTranslatedReason()}</p>
-              
-              {/* Gift Row: Player Selection */}
-              {isGiftRow && otherPlayers.length > 0 && (
-                <div className={styles.giftPlayerSelection}>
-                  <p className={styles.giftSelectLabel}>{t('notifications.selectPlayers')}</p>
-                  <div className={styles.giftPlayerButtons}>
-                    {otherPlayers.map((player) => (
-                      <button
-                        key={player.id}
-                        className={`${styles.giftPlayerButton} ${
-                          selectedPlayers.includes(player.id) ? styles.giftPlayerSelected : ''
-                        }`}
-                        onClick={() => {
-                          playSound('click');
-                          setSelectedPlayers(prev => 
-                            prev.includes(player.id) 
-                              ? prev.filter(id => id !== player.id)
-                              : [...prev, player.id]
-                          );
-                        }}
-                      >
-                        {player.nickname}
-                      </button>
-                    ))}
-                  </div>
-                  {selectedPlayers.length > 0 && currentPlayer && (
-                    <button
-                      className={`btn btn-success btn-lg ${styles.giftGiveButton}`}
-                      onClick={() => {
-                        playSound('success');
-                        distributeDrinks(selectedPlayers, currentPlayer.drinksToDistribute);
-                        setSelectedPlayers([]);
-                        clearPendingDrink();
-                      }}
-                    >
-                      {t('notifications.giveDrinks')} 💕
-                    </button>
-                  )}
-                </div>
-              )}
-              
-              {/* Regular drink: Confirm button */}
-              {!isGiftRow && !isExcited && (
-                <button
-                  className="btn btn-primary btn-lg"
-                  onClick={handleConfirmDrink}
-                >
-                  {isReceivedGift ? t('notifications.hadMyDrinks') : t('notifications.drinkConfirm')}
-                </button>
-              )}
-              
-              {/* Excited overlay: Different button */}
-              {isExcited && (
-                <button
-                  className="btn btn-secondary btn-lg"
-                  onClick={handleConfirmDrink}
-                >
-                  {/* amount > 1 means multiple players are excited */}
-                  {pendingDrink.amount > 1 
-                    ? t('notifications.avoidEyeContactThem')
-                    : t('notifications.avoidEyeContact', { playerName: playerName || 'them' })}
-                </button>
-              )}
-              
-              {/* Show hand cards - for question phase overlays and pyramid rows (not excited/received gift/gift row) */}
-              {!isExcited && !isReceivedGift && !isGiftRow && (() => {
-                const shouldShowOtherHand = isOtherPlayerCorrect || isTrucoBackfired;
-                const isPyramidMatch = reason.includes('Matched card');
-                const isNoMatches = reason.includes('No matches');
-                
-                // Get the answer that triggered this overlay - use pendingDrink.answer
-                const triggerAnswer = pendingDrink.answer || '';
-                const triggerPlayerName = pendingDrink.sourcePlayerName || playerName;
-                
-                // Translate the answer value if it's a question answer
-                const answerKey = triggerAnswer.toLowerCase();
-                const translatedAnswer = t(`answers.${answerKey}`) !== `answers.${answerKey}` 
-                  ? t(`answers.${answerKey}`) 
-                  : triggerAnswer;
-                
-                // Get the pyramid card value for highlighting matched cards
-                const pyramidCardValue = pendingDrink.card?.value;
-                
-                // If another player answered correctly or truco backfired, show THEIR hand
-                if (shouldShowOtherHand && playerName) {
-                  const answeringPlayer = gameState?.players.find(p => p.nickname === playerName);
-                  if (answeringPlayer && answeringPlayer.hand.length > 0) {
-                    return (
-                      <div className={styles.drinkHandSection}>
-                        {/* Show the answer that triggered this */}
-                        {triggerAnswer && (
-                          <div className={styles.correctAnswerDisplay}>
-                            <span className={styles.correctAnswerLabel}>{t('notifications.theirAnswer', { playerName: triggerPlayerName })}:</span>
-                            <span className={styles.correctAnswerText}>{translatedAnswer}</span>
-                          </div>
-                        )}
-                        <p className={styles.drinkHandLabel}>
-                          {t('game.theirHand', { playerName })}
-                        </p>
-                        <div className={styles.drinkHandCards}>
-                          {answeringPlayer.hand.map((card, idx) => (
-                            <PlayingCard
-                              key={card.id || idx}
-                              card={{...card, faceUp: true}}
-                              size="sm"
-                              highlighted={idx === answeringPlayer.hand.length - 1}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    );
-                  }
-                }
-                
-                // Show current player's hand for wrong answer, pyramid match, or no matches
-                if ((isWrongAnswer || isPyramidMatch || isNoMatches) && currentPlayer && currentPlayer.hand.length > 0) {
-                  return (
-                    <div className={styles.drinkHandSection}>
-                      {/* Show player's wrong answer */}
-                      {isWrongAnswer && triggerAnswer && (
-                        <div className={styles.wrongAnswerDisplay}>
-                          <span className={styles.wrongAnswerLabel}>{t('notifications.yourAnswer')}:</span>
-                          <span className={styles.wrongAnswerText}>{translatedAnswer}</span>
-                        </div>
-                      )}
-                      <p className={styles.drinkHandLabel}>{t('game.yourHand')}</p>
-                      <div className={styles.drinkHandCards}>
-                        {currentPlayer.hand.map((card, idx) => (
-                          <PlayingCard
-                            key={card.id || idx}
-                            card={{...card, faceUp: true}}
-                            size="sm"
-                            highlighted={isPyramidMatch && pyramidCardValue && card.value === pyramidCardValue}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                }
-                
-                return null;
-              })()}
-            </div>
-          </div>
-        );
-      })()}
+        {currentPlayer && gameState.phase !== 'ended' && (
+          <SwipeableDrawer
+            players={gameState.players}
+            currentPlayer={currentPlayer}
+            currentTurnPlayer={currentTurnPlayer}
+            selectedPlayers={selectedPlayers}
+            onSelectPlayer={
+              currentPlayer?.drinksToDistribute
+                ? (playerId) => togglePlayerSelection(playerId)
+                : undefined
+            }
+          />
+        )}
+      </div>
 
       {/* Replay Vote Modal */}
       <Modal
         isOpen={showReplayModal && !hasVoted}
         title={t('endGame.playAgain')}
         showCloseButton={false}
-        size="sm"
+        size="md"
       >
-        <div className={styles.voteModal}>
-          <p>{t('endGame.waitingForVotes')}</p>
-          <div className={styles.voteButtons}>
+        <div className="text-center">
+          <p className="text-lg text-white/90 mb-6">{t('endGame.waitingForVotes')}</p>
+          <div className="flex gap-4 justify-center">
             <button
-              className="btn btn-success btn-lg"
+              className="btn btn-success btn-lg min-w-[120px]"
               onClick={() => handleVoteReplay(true)}
             >
               {t('common.yes')}
             </button>
             <button
-              className="btn btn-danger btn-lg"
+              className="btn btn-danger btn-lg min-w-[120px]"
               onClick={() => handleVoteReplay(false)}
             >
               {t('common.no')}
@@ -776,6 +685,99 @@ export default function GamePage() {
           </div>
         </div>
       </Modal>
+
+      {/* New Redesigned Modals */}
+      <SuccessModal
+        isOpen={activeModal === 'success'}
+        prediction={modalData.prediction || ''}
+        result={modalData.result || ''}
+        card={modalData.card || null}
+        otherPlayers={modalData.otherPlayers || []}
+        onContinue={handleConfirmDrink}
+      />
+
+      <DrinkModal
+        isOpen={activeModal === 'drink'}
+        prediction={modalData.prediction || ''}
+        result={modalData.result || ''}
+        card={modalData.card || null}
+        drinkCount={pendingDrink?.amount || 1}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <OtherPlayerResultModal
+        isOpen={activeModal === 'otherResult'}
+        playerName={modalData.playerName || ''}
+        wasCorrect={true}
+        prediction={modalData.prediction || ''}
+        result={modalData.result || ''}
+        card={modalData.card || null}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <GiftSelectionModal
+        isOpen={activeModal === 'gift'}
+        drinksToGive={modalData.drinksToGive || 0}
+        players={gameState?.players || []}
+        currentPlayerId={currentPlayer?.id || ''}
+        onConfirm={(selectedIds) => {
+          if (selectedIds.length > 0 && currentPlayer) {
+            distributeDrinks(selectedIds, currentPlayer.drinksToDistribute);
+          }
+          handleConfirmDrink();
+        }}
+      />
+
+      <NoMatchModal
+        isOpen={activeModal === 'noMatch'}
+        card={modalData.card || null}
+        drinkCount={pendingDrink?.amount || 1}
+        playerHand={currentPlayer?.hand || []}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <PyramidMatchModal
+        isOpen={activeModal === 'pyramidMatch'}
+        card={modalData.card || null}
+        rowNumber={modalData.rowNumber || 0}
+        drinkCount={pendingDrink?.amount || 1}
+        playerHand={currentPlayer?.hand || []}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <OtherPlayerDrinkModal
+        isOpen={activeModal === 'otherPlayerDrink'}
+        playerName={modalData.playerName || ''}
+        rowNumber={modalData.rowNumber || 0}
+        drinkCount={pendingDrink?.amount || 1}
+        card={modalData.card || null}
+        playerHand={modalData.matchingPlayerHand as any || []}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <GiftReceivedModal
+        isOpen={activeModal === 'giftReceived'}
+        senderName={modalData.playerName || ''}
+        drinkCount={pendingDrink?.amount || 1}
+        card={modalData.card || null}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <OtherPlayerGiftingModal
+        isOpen={activeModal === 'otherPlayerGifting'}
+        playerNames={[modalData.playerName || '']}
+        drinksToDistribute={modalData.drinksToGive || 0}
+        onConfirm={handleConfirmDrink}
+      />
+
+      <SomeoneIsDrinkingModal
+        isOpen={activeModal === 'someoneIsDrinking'}
+        playerName={modalData.playerName || ''}
+        drinkCount={pendingDrink?.amount || 1}
+        reason={pendingDrink?.reason || ''}
+        card={modalData.card || null}
+        onConfirm={handleConfirmDrink}
+      />
     </main>
   );
 }

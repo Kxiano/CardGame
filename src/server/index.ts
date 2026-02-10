@@ -22,6 +22,15 @@ const PORT = process.env.PORT || 3001;
 const rooms: Map<string, Room> = new Map();
 const playerRooms: Map<string, string> = new Map(); // socketId -> roomId
 
+// Session persistence for reconnection
+interface PlayerSession {
+  playerId: string;
+  roomId: string;
+  expiresAt: number; // 0 means no expiry (connected)
+}
+const playerSessions: Map<string, PlayerSession> = new Map(); // sessionToken -> session
+const SESSION_GRACE_PERIOD = 120000; // 2 minutes
+
 function generateRoomId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -223,6 +232,20 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
         answer: gameState.lastAnswer?.answer,
       });
     }
+    
+    // Notify the player who answered correctly with a success event
+    emitDrinkEvent(io, gameState.roomId, {
+      id: uuidv4(),
+      type: 'success',
+      targetPlayerIds: [currentPlayer.id],
+      sourcePlayerId: currentPlayer.id,
+      sourcePlayerName: currentPlayer.nickname,
+      amount: 0, // No drinks for the winner
+      reason: `You answered correctly! Others drink.`,
+      timestamp: Date.now(),
+      card: gameState.lastAnswer?.card,
+      answer: gameState.lastAnswer?.answer,
+    });
   } else {
     // Current player takes 1 drink (+ truco penalties if any)
     const trucoCount = gameState.trucoVotes.length;
@@ -242,6 +265,28 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
       card: gameState.lastAnswer?.card,
       answer: gameState.lastAnswer?.answer,
     });
+    
+    // Notify OTHER players (not the one drinking) about what happened
+    const otherPlayerIds = gameState.players
+      .filter(p => p.id !== currentPlayer.id)
+      .map(p => p.id);
+    
+    if (otherPlayerIds.length > 0) {
+      emitDrinkEvent(io, gameState.roomId, {
+        id: uuidv4(),
+        type: 'notification',
+        targetPlayerIds: otherPlayerIds,
+        sourcePlayerId: currentPlayer.id,
+        sourcePlayerName: currentPlayer.nickname,
+        amount: totalDrinks,
+        reason: trucoCount > 0 
+          ? `${currentPlayer.nickname} answered incorrectly! (+${trucoCount} Truco penalty)`
+          : `${currentPlayer.nickname} answered incorrectly!`,
+        timestamp: Date.now(),
+        card: gameState.lastAnswer?.card,
+        answer: gameState.lastAnswer?.answer,
+      });
+    }
   }
   
   // Reset truco state
@@ -411,12 +456,20 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
     }
   } else {
     // Regular drink rows or no matches - original behavior
+    // Track matching players for drink rows
+    const matchingPlayerIdsInDrinkRow: string[] = [];
+    
     for (const assignment of drinkAssignments) {
       if (assignment.type === 'take') {
+        if (matchesFound) {
+          matchingPlayerIdsInDrinkRow.push(assignment.playerId);
+        }
         emitDrinkEvent(io, gameState.roomId, {
           id: uuidv4(),
           type: 'take',
           targetPlayerIds: [assignment.playerId],
+          sourcePlayerId: assignment.playerId,
+          sourcePlayerName: gameState.players.find(p => p.id === assignment.playerId)?.nickname,
           amount: assignment.amount,
           reason: matchesFound 
             ? `Matched card in Row ${row.rowNumber}!`
@@ -429,6 +482,46 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
         const player = gameState.players.find(p => p.id === assignment.playerId);
         if (player) {
           player.drinksToDistribute += assignment.amount;
+        }
+      }
+    }
+    
+    // Notify non-matching players when someone else matched in a drink row
+    if (matchesFound && matchingPlayerIdsInDrinkRow.length > 0) {
+      const nonMatchingPlayerIds = gameState.players
+        .filter(p => !matchingPlayerIdsInDrinkRow.includes(p.id))
+        .map(p => p.id);
+      
+      if (nonMatchingPlayerIds.length > 0) {
+        // Get matching player names
+        const matchingPlayerNames = matchingPlayerIdsInDrinkRow
+          .map(id => gameState.players.find(p => p.id === id)?.nickname)
+          .filter(Boolean) as string[];
+        
+        // Format names list
+        let namesList: string;
+        if (matchingPlayerNames.length === 1) {
+          namesList = matchingPlayerNames[0];
+        } else if (matchingPlayerNames.length === 2) {
+          namesList = `${matchingPlayerNames[0]} & ${matchingPlayerNames[1]}`;
+        } else {
+          const lastPlayer = matchingPlayerNames.pop();
+          namesList = `${matchingPlayerNames.join(', ')} & ${lastPlayer}`;
+        }
+        
+        // Emit notification to non-matching players
+        for (const playerId of nonMatchingPlayerIds) {
+          emitDrinkEvent(io, gameState.roomId, {
+            id: uuidv4(),
+            type: 'excited', // Reusing 'excited' type for notification
+            targetPlayerIds: [playerId],
+            sourcePlayerId: matchingPlayerIdsInDrinkRow[0],
+            sourcePlayerName: namesList,
+            amount: row.drinkMultiplier, // How many drinks the matcher(s) have to take
+            reason: `${namesList} matched in drink Row ${row.rowNumber}!`,
+            timestamp: Date.now(),
+            card: revealedCard,
+          });
         }
       }
     }
@@ -533,14 +626,62 @@ function broadcastLobbies(io: SocketIOServer) {
 const httpServer = createServer();
 const io = new SocketIOServer<ClientToServerEvents, ServerToClientEvents>(httpServer, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'https://xerekinha-frontend.onrender.com',
-      'https://game.cassianosantos.com'
-    ],
+    origin: (requestOrigin, callback) => {
+      const allowedOrigins = [
+        'http://localhost:3000',
+        'https://xerekinha-frontend.onrender.com',
+        'https://xerekinha-preview-frontend.onrender.com',
+        'https://game.cassianosantos.com'
+      ];
+
+      if (!requestOrigin) return callback(null, true);
+
+      if (allowedOrigins.indexOf(requestOrigin) !== -1) {
+        return callback(null, true);
+      }
+
+      const isLocal = requestOrigin.startsWith('http://192.168.')
+                      
+      if (isLocal) {
+        return callback(null, true);
+      }
+
+      callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST'],
+    credentials: true,
   },
 });
+
+// Session cleanup interval - removes expired sessions
+setInterval(() => {
+  const now = Date.now();
+  for (const [sessionToken, session] of playerSessions.entries()) {
+    if (session.expiresAt > 0 && session.expiresAt < now) {
+      // Session expired - remove player from room
+      const room = rooms.get(session.roomId);
+      if (room) {
+        const player = room.gameState.players.find(p => p.id === session.playerId);
+        room.gameState.players = room.gameState.players.filter(p => p.id !== session.playerId);
+        if (player) {
+          io.to(session.roomId).emit('room:playerLeft', session.playerId);
+          console.log(`Session expired for player ${player.nickname} in room ${session.roomId}`);
+        }
+        // If room is empty, delete it
+        if (room.gameState.players.length === 0) {
+          rooms.delete(session.roomId);
+        } else if (player?.isDealer) {
+          // Assign new dealer
+          room.gameState.players[0].isDealer = true;
+          room.gameState.players[0].isReady = true;
+        }
+        broadcastGameState(io, session.roomId);
+        broadcastLobbies(io);
+      }
+      playerSessions.delete(sessionToken);
+    }
+  }
+}, 10000); // Check every 10 seconds
 
 io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>) => {
   console.log('Client connected:', socket.id);
@@ -562,7 +703,15 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     playerRooms.set(socket.id, roomId);
     socket.join(roomId);
     
-    callback(roomId);
+    // Create session token for reconnection
+    const sessionToken = uuidv4();
+    playerSessions.set(sessionToken, {
+      playerId: player.id,
+      roomId,
+      expiresAt: 0, // No expiry while connected
+    });
+    
+    callback(roomId, undefined, sessionToken);
     broadcastGameState(io, roomId);
     broadcastLobbies(io); // Update lobby browser
   });
@@ -590,10 +739,55 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     playerRooms.set(socket.id, roomId.toUpperCase());
     socket.join(roomId.toUpperCase());
     
-    callback(true);
+    // Create session token for reconnection
+    const sessionToken = uuidv4();
+    playerSessions.set(sessionToken, {
+      playerId: player.id,
+      roomId: roomId.toUpperCase(),
+      expiresAt: 0, // No expiry while connected
+    });
+    
+    callback(true, undefined, sessionToken);
     io.to(roomId.toUpperCase()).emit('room:playerJoined', player);
     broadcastGameState(io, roomId.toUpperCase());
     broadcastLobbies(io); // Update lobby browser
+  });
+
+  // Reconnect to existing session
+  socket.on('room:reconnect', (sessionToken, callback) => {
+    const session = playerSessions.get(sessionToken);
+    if (!session) {
+      callback(false, 'Session not found or expired');
+      return;
+    }
+    
+    const room = rooms.get(session.roomId);
+    if (!room) {
+      playerSessions.delete(sessionToken);
+      callback(false, 'Room no longer exists');
+      return;
+    }
+    
+    const player = room.gameState.players.find(p => p.id === session.playerId);
+    if (!player) {
+      playerSessions.delete(sessionToken);
+      callback(false, 'Player no longer in room');
+      return;
+    }
+    
+    // Reconnect the player
+    player.socketId = socket.id;
+    player.isConnected = true;
+    session.expiresAt = 0; // Clear expiry
+    
+    playerRooms.set(socket.id, session.roomId);
+    socket.join(session.roomId);
+    
+    console.log(`Player ${player.nickname} reconnected to room ${session.roomId}`);
+    
+    callback(true, undefined, room.gameState);
+    io.to(session.roomId).emit('room:playerReconnected', player.id);
+    broadcastGameState(io, session.roomId);
   });
 
   // Lobby browser - get list of open lobbies
@@ -611,6 +805,14 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     const player = room.gameState.players.find(p => p.socketId === socket.id);
     if (!player) return;
     
+    // Delete the player's session (intentional leave, no grace period)
+    for (const [token, session] of playerSessions.entries()) {
+      if (session.playerId === player.id && session.roomId === roomId) {
+        playerSessions.delete(token);
+        break;
+      }
+    }
+    
     room.gameState.players = room.gameState.players.filter(p => p.socketId !== socket.id);
     playerRooms.delete(socket.id);
     socket.leave(roomId);
@@ -627,6 +829,7 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     }
     
     broadcastGameState(io, roomId);
+    broadcastLobbies(io);
   });
 
   socket.on('game:setReady', (ready) => {
@@ -864,6 +1067,45 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     broadcastGameState(io, roomId);
   });
 
+  socket.on('game:reorderPlayers', (sourceIndex, destinationIndex) => {
+    console.log('Server received game:reorderPlayers', { sourceIndex, destinationIndex, socketId: socket.id });
+    const roomId = playerRooms.get(socket.id);
+    if (!roomId) {
+        console.log('Room ID not found for socket', socket.id);
+        return;
+    }
+    
+    const room = rooms.get(roomId);
+    if (!room) {
+        console.log('Room not found', roomId);
+        return;
+    }
+    
+    const player = room.gameState.players.find(p => p.socketId === socket.id);
+    console.log('Player found:', player?.nickname, 'isDealer:', player?.isDealer);
+    
+    if (!player?.isDealer) {
+        console.log('Player is not dealer, ignoring reorder request');
+        return; 
+    }
+    
+    const players = room.gameState.players;
+    
+    // Validate indices
+    if (sourceIndex < 0 || sourceIndex >= players.length || 
+        destinationIndex < 0 || destinationIndex >= players.length) {
+        console.log('Invalid indices', { sourceIndex, destinationIndex, totalPlayers: players.length });
+      return;
+    }
+    
+    // Move player
+    const [movedPlayer] = players.splice(sourceIndex, 1);
+    players.splice(destinationIndex, 0, movedPlayer);
+    
+    console.log('Reorder successful, broadcasting new state');
+    broadcastGameState(io, roomId);
+  });
+
   socket.on('disconnect', () => {
     console.log('Client disconnected:', socket.id);
     
@@ -876,7 +1118,18 @@ io.on('connection', (socket: Socket<ClientToServerEvents, ServerToClientEvents>)
     const player = room.gameState.players.find(p => p.socketId === socket.id);
     if (player) {
       player.isConnected = false;
-      io.to(roomId).emit('room:playerLeft', player.id);
+      
+      // Set session expiry for grace period
+      for (const [token, session] of playerSessions.entries()) {
+        if (session.playerId === player.id && session.roomId === roomId) {
+          session.expiresAt = Date.now() + SESSION_GRACE_PERIOD;
+          console.log(`Player ${player.nickname} disconnected, grace period started (${SESSION_GRACE_PERIOD / 1000}s)`);
+          break;
+        }
+      }
+      
+      // Emit playerDisconnected (temporary) instead of playerLeft (permanent)
+      io.to(roomId).emit('room:playerDisconnected', player.id);
       broadcastGameState(io, roomId);
     }
     
