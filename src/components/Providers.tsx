@@ -5,6 +5,7 @@ import { SocketProvider } from '@/lib/socket';
 import { I18nProvider } from '@/lib/i18n';
 import { SoundProvider } from '@/lib/sound';
 import { ToastProvider } from '@/components/ui';
+import { ModalQueueProvider } from '@/lib/modal';
 
 interface ProvidersProps {
   children: ReactNode;
@@ -16,7 +17,9 @@ export function Providers({ children }: ProvidersProps) {
       <SoundProvider>
         <SocketProvider>
           <ToastProvider>
-            {children}
+            <ModalQueueProvider>
+              {children}
+            </ModalQueueProvider>
           </ToastProvider>
         </SocketProvider>
       </SoundProvider>

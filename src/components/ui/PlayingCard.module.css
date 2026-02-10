@@ -6,6 +6,50 @@
         0 4px 8px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     user-select: none;
+    perspective: 600px;
+}
+
+/* Card flip animation */
+.flipIn {
+    animation: cardFlipIn 0.5s ease-out forwards;
+    transform-style: preserve-3d;
+}
+
+@keyframes cardFlipIn {
+    0% {
+        transform: rotateY(180deg) scale(0.8);
+        opacity: 0;
+    }
+
+    50% {
+        transform: rotateY(90deg) scale(0.9);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: rotateY(0deg) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Reveal animation - more dramatic for pyramid */
+.flipReveal {
+    animation: cardReveal 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    transform-style: preserve-3d;
+}
+
+@keyframes cardReveal {
+    0% {
+        transform: rotateY(0deg);
+    }
+
+    50% {
+        transform: rotateY(90deg) scale(1.1);
+    }
+
+    100% {
+        transform: rotateY(0deg) scale(1);
+    }
 }
 
 .cardSm {
@@ -26,6 +70,22 @@
     font-size: 1.2rem;
 }
 
+/* Extra small - for mobile pyramid cards */
+.cardXs {
+    width: 50px;
+    height: 70px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+}
+
+/* Extra extra small - for mobile player hands */
+.cardXxs {
+    width: 36px;
+    height: 50px;
+    font-size: 0.55rem;
+    border-radius: 3px;
+}
+
 .faceUp {
     background: linear-gradient(135deg, #faf8f5 0%, #f0ebe3 100%);
 }
@@ -36,13 +96,18 @@
     overflow: hidden;
 }
 
-/* Cardmeister web component cards */
+/* Cardmeister web component cards - remove container styling since Cardmeister has its own */
 .faceUpCardmeister {
     background: transparent;
     overflow: visible;
     display: flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
+    padding: 0;
+    box-shadow: none;
+    /* Remove container shadow - Cardmeister has its own */
+    border-radius: 0;
+    /* Cardmeister handles its own corners */
 }
 
 .cardImage {

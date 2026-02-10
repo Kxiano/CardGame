@@ -101,7 +101,7 @@ export interface PendingDrink {
 
 export interface DrinkEvent {
   id: string;
-  type: 'take' | 'distribute' | 'excited'; // excited = "getting excited" overlay for others
+  type: 'take' | 'distribute' | 'excited' | 'notification' | 'success'; // success = you answered correctly
   targetPlayerIds: string[];
   sourcePlayerId?: string;
   sourcePlayerName?: string; // Name of player who triggered the event

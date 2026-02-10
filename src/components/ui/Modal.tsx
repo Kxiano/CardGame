@@ -58,12 +58,12 @@ export function Modal({
   return (
     <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
       <div
-        className={`modal-content ${sizeClasses[size]}`}
+        className={`modal-content ${sizeClasses[size]} max-h-[90dvh] sm:max-h-[90vh] p-4 sm:p-8`}
         onClick={(e) => e.stopPropagation()}
       >
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between mb-6">
-            {title && <h2 className="text-2xl font-bold text-gold">{title}</h2>}
+          <div className="flex items-center justify-between mb-4 sm:mb-6">
+            {title && <h2 className="text-xl sm:text-2xl font-bold text-gold">{title}</h2>}
             {showCloseButton && onClose && (
               <button
                 className="p-2 text-text-muted hover:text-gold transition-colors duration-150"

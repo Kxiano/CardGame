@@ -232,6 +232,20 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
         answer: gameState.lastAnswer?.answer,
       });
     }
+    
+    // Notify the player who answered correctly with a success event
+    emitDrinkEvent(io, gameState.roomId, {
+      id: uuidv4(),
+      type: 'success',
+      targetPlayerIds: [currentPlayer.id],
+      sourcePlayerId: currentPlayer.id,
+      sourcePlayerName: currentPlayer.nickname,
+      amount: 0, // No drinks for the winner
+      reason: `You answered correctly! Others drink.`,
+      timestamp: Date.now(),
+      card: gameState.lastAnswer?.card,
+      answer: gameState.lastAnswer?.answer,
+    });
   } else {
     // Current player takes 1 drink (+ truco penalties if any)
     const trucoCount = gameState.trucoVotes.length;
@@ -251,6 +265,28 @@ function processAnswerResult(io: SocketIOServer, room: Room, correct: boolean) {
       card: gameState.lastAnswer?.card,
       answer: gameState.lastAnswer?.answer,
     });
+    
+    // Notify OTHER players (not the one drinking) about what happened
+    const otherPlayerIds = gameState.players
+      .filter(p => p.id !== currentPlayer.id)
+      .map(p => p.id);
+    
+    if (otherPlayerIds.length > 0) {
+      emitDrinkEvent(io, gameState.roomId, {
+        id: uuidv4(),
+        type: 'notification',
+        targetPlayerIds: otherPlayerIds,
+        sourcePlayerId: currentPlayer.id,
+        sourcePlayerName: currentPlayer.nickname,
+        amount: totalDrinks,
+        reason: trucoCount > 0 
+          ? `${currentPlayer.nickname} answered incorrectly! (+${trucoCount} Truco penalty)`
+          : `${currentPlayer.nickname} answered incorrectly!`,
+        timestamp: Date.now(),
+        card: gameState.lastAnswer?.card,
+        answer: gameState.lastAnswer?.answer,
+      });
+    }
   }
   
   // Reset truco state
@@ -420,12 +456,20 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
     }
   } else {
     // Regular drink rows or no matches - original behavior
+    // Track matching players for drink rows
+    const matchingPlayerIdsInDrinkRow: string[] = [];
+    
     for (const assignment of drinkAssignments) {
       if (assignment.type === 'take') {
+        if (matchesFound) {
+          matchingPlayerIdsInDrinkRow.push(assignment.playerId);
+        }
         emitDrinkEvent(io, gameState.roomId, {
           id: uuidv4(),
           type: 'take',
           targetPlayerIds: [assignment.playerId],
+          sourcePlayerId: assignment.playerId,
+          sourcePlayerName: gameState.players.find(p => p.id === assignment.playerId)?.nickname,
           amount: assignment.amount,
           reason: matchesFound 
             ? `Matched card in Row ${row.rowNumber}!`
@@ -438,6 +482,46 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
         const player = gameState.players.find(p => p.id === assignment.playerId);
         if (player) {
           player.drinksToDistribute += assignment.amount;
+        }
+      }
+    }
+    
+    // Notify non-matching players when someone else matched in a drink row
+    if (matchesFound && matchingPlayerIdsInDrinkRow.length > 0) {
+      const nonMatchingPlayerIds = gameState.players
+        .filter(p => !matchingPlayerIdsInDrinkRow.includes(p.id))
+        .map(p => p.id);
+      
+      if (nonMatchingPlayerIds.length > 0) {
+        // Get matching player names
+        const matchingPlayerNames = matchingPlayerIdsInDrinkRow
+          .map(id => gameState.players.find(p => p.id === id)?.nickname)
+          .filter(Boolean) as string[];
+        
+        // Format names list
+        let namesList: string;
+        if (matchingPlayerNames.length === 1) {
+          namesList = matchingPlayerNames[0];
+        } else if (matchingPlayerNames.length === 2) {
+          namesList = `${matchingPlayerNames[0]} & ${matchingPlayerNames[1]}`;
+        } else {
+          const lastPlayer = matchingPlayerNames.pop();
+          namesList = `${matchingPlayerNames.join(', ')} & ${lastPlayer}`;
+        }
+        
+        // Emit notification to non-matching players
+        for (const playerId of nonMatchingPlayerIds) {
+          emitDrinkEvent(io, gameState.roomId, {
+            id: uuidv4(),
+            type: 'excited', // Reusing 'excited' type for notification
+            targetPlayerIds: [playerId],
+            sourcePlayerId: matchingPlayerIdsInDrinkRow[0],
+            sourcePlayerName: namesList,
+            amount: row.drinkMultiplier, // How many drinks the matcher(s) have to take
+            reason: `${namesList} matched in drink Row ${row.rowNumber}!`,
+            timestamp: Date.now(),
+            card: revealedCard,
+          });
         }
       }
     }

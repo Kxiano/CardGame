@@ -47,6 +47,11 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-full: 9999px;
+
+  /* Mobile-First Spacing */
+  --header-height-mobile: 48px;
+  --players-bar-height: 72px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @layer base {

@@ -135,28 +135,28 @@ export default function LobbyPage() {
   const canStart = isDealer && allReady && gameState.players.length >= 2;
 
   return (
-    <main className="min-h-screen flex flex-col">
-      {/* Header */}
-      <header className="flex justify-between items-center px-6 py-4">
+    <main className="h-dvh h-screen flex flex-col overflow-hidden">
+      {/* Header - compact on mobile */}
+      <header className="flex justify-between items-center px-3 py-2 sm:px-6 sm:py-4 flex-shrink-0">
         <button className="btn btn-secondary btn-sm" onClick={handleLeave}>
           ← {t('lobby.leave')}
         </button>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <SoundToggle />
           <LanguageSelector />
         </div>
       </header>
 
-      <div className="flex-1 p-6 flex justify-center">
+      <div className="flex-1 px-3 py-2 sm:p-6 flex justify-center overflow-y-auto">
         <div className="w-full max-w-[900px]">
-          {/* Room Info */}
-          <div className="text-center mb-8 flex flex-col items-center">
-            <h1 className="text-3xl mb-4 text-gold">{t('lobby.title')}</h1>
+          {/* Room Info - compact on mobile */}
+          <div className="text-center mb-4 sm:mb-8 flex flex-col items-center">
+            <h1 className="text-xl sm:text-3xl mb-2 sm:mb-4 text-gold">{t('lobby.title')}</h1>
 
-            <div className="inline-flex flex-col items-center gap-2 px-6 py-4 bg-black/30 rounded-xl mb-4">
-              <span className="text-sm text-white/60">{t('lobby.roomCode')}</span>
-              <div className="flex items-center gap-3">
-                <span className="text-3xl font-extrabold tracking-[4px] text-white font-mono">{roomId}</span>
+            <div className="inline-flex flex-col items-center gap-1 sm:gap-2 px-4 py-2 sm:px-6 sm:py-4 bg-black/30 rounded-xl mb-2 sm:mb-4">
+              <span className="text-xs sm:text-sm text-white/60">{t('lobby.roomCode')}</span>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="text-xl sm:text-3xl font-extrabold tracking-[2px] sm:tracking-[4px] text-white font-mono">{roomId}</span>
                 <button
                   className={`btn btn-sm ${copied ? 'btn-success' : 'btn-secondary'}`}
                   onClick={handleCopyCode}
@@ -167,16 +167,16 @@ export default function LobbyPage() {
             </div>
 
             {isDealer && (
-              <span className="badge badge-dealer text-sm px-3 py-1 self-center">
+              <span className="badge badge-dealer text-xs sm:text-sm px-2 py-0.5 sm:px-3 sm:py-1 self-center">
                 {t('lobby.youAreDealer')}
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-6">
             {/* Players List */}
-            <section className="glass-panel p-6">
-              <h2 className="text-xl mb-4 text-gold">
+            <section className="glass-panel p-3 sm:p-6">
+              <h2 className="text-base sm:text-xl mb-2 sm:mb-4 text-gold">
                 {t('lobby.players')} ({gameState.players.length}/10)
               </h2>
 
@@ -213,12 +213,9 @@ export default function LobbyPage() {
                     </div>
                     <div className="flex-1 flex flex-col gap-1">
                       <span className="font-semibold">
-                        {player.nickname}
+                        {player.isDealer && '👑 '}{player.nickname}
                         {player.id === currentPlayer?.id && ' (You)'}
                       </span>
-                      {player.isDealer && (
-                        <span className="badge badge-dealer">{t('common.dealer')}</span>
-                      )}
                     </div>
                     <span className={`badge ${player.isReady ? 'badge-ready' : 'badge-waiting'}`}>
                       {player.isReady ? t('lobby.ready') : t('lobby.notReady')}

@@ -149,32 +149,32 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col relative overflow-hidden">
-      {/* Background decorative cards */}
+    <main className="h-dvh h-screen flex flex-col relative overflow-hidden">
+      {/* Background decorative cards - smaller on mobile */}
       <div className="absolute inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-5%] left-[-5%] -rotate-[15deg] text-white text-[15rem] sm:text-[10rem] opacity-[0.03] font-bold">♠</div>
-        <div className="absolute top-[10%] right-[-10%] rotate-[20deg] text-card-red text-[15rem] sm:text-[10rem] opacity-[0.03] font-bold">♥</div>
-        <div className="absolute bottom-[10%] left-[5%] -rotate-[25deg] text-card-red text-[15rem] sm:text-[10rem] opacity-[0.03] font-bold">♦</div>
-        <div className="absolute bottom-[-10%] right-[5%] rotate-[30deg] text-white text-[15rem] sm:text-[10rem] opacity-[0.03] font-bold">♣</div>
+        <div className="absolute top-[-5%] left-[-5%] -rotate-[15deg] text-white text-[8rem] sm:text-[10rem] md:text-[15rem] opacity-[0.03] font-bold">♠</div>
+        <div className="absolute top-[10%] right-[-10%] rotate-[20deg] text-card-red text-[8rem] sm:text-[10rem] md:text-[15rem] opacity-[0.03] font-bold">♥</div>
+        <div className="absolute bottom-[10%] left-[5%] -rotate-[25deg] text-card-red text-[8rem] sm:text-[10rem] md:text-[15rem] opacity-[0.03] font-bold">♦</div>
+        <div className="absolute bottom-[-10%] right-[5%] rotate-[30deg] text-white text-[8rem] sm:text-[10rem] md:text-[15rem] opacity-[0.03] font-bold">♣</div>
       </div>
 
-      {/* Header with settings */}
-      <header className="flex justify-between items-center px-6 py-4 relative z-10">
-        <div className="flex gap-3">
+      {/* Header with settings - compact on mobile */}
+      <header className="flex justify-between items-center px-3 py-2 sm:px-6 sm:py-4 relative z-10 flex-shrink-0">
+        <div className="flex gap-2">
           <SoundToggle />
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <LanguageSelector />
         </div>
       </header>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 gap-8">
+      {/* Main content - tighter spacing on mobile */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-2 sm:p-6 relative z-10 gap-4 sm:gap-8">
         <div className="text-center">
-          <h1 className="text-6xl sm:text-4xl font-black bg-gradient-to-r from-gold via-gold-light to-gold bg-clip-text text-transparent mb-2 -tracking-[2px]">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-black bg-gradient-to-r from-gold via-gold-light to-gold bg-clip-text text-transparent mb-1 sm:mb-2 -tracking-[1px] sm:-tracking-[2px]">
             {t('home.title')}
           </h1>
-          <p className="text-xl sm:text-base text-white/70 m-0">{t('home.subtitle')}</p>
+          <p className="text-base sm:text-xl text-white/70 m-0">{t('home.subtitle')}</p>
           <p className="inline-block mt-4 px-4 py-1.5 bg-gold/15 border border-gold/30 rounded-full text-gold text-sm font-semibold">
             {t('home.playerCount')}
           </p>
@@ -192,8 +192,8 @@ export default function Home() {
           />
         </div>
 
-        {/* Main buttons */}
-        <div className="flex flex-col items-center gap-4 w-full max-w-[320px]">
+        {/* Main buttons - compact on mobile */}
+        <div className="flex flex-col items-center gap-2 sm:gap-4 w-full max-w-[280px] sm:max-w-[320px]">
           <button
             className="btn btn-primary btn-lg w-full"
             onClick={handleCreateRoom}
