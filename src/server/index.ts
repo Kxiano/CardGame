@@ -441,13 +441,18 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
       
       for (const playerId of nonMatchingPlayerIds) {
         const verb = matchingPlayerNames.length > 1 ? 'are' : 'is';
+        // Calculate total drinks being distributed across all matching players
+        let totalDrinksBeingDistributed = 0;
+        for (const [, amt] of playerDrinkTotals) {
+          totalDrinksBeingDistributed += amt;
+        }
         emitDrinkEvent(io, gameState.roomId, {
           id: uuidv4(),
           type: 'excited',
           targetPlayerIds: [playerId],
           sourcePlayerId: matchingPlayerIds[0],
           sourcePlayerName: namesList, // All matching player names
-          amount: matchingPlayerNames.length, // Number of excited players (for overlay to use)
+          amount: totalDrinksBeingDistributed, // Actual total drinks being distributed
           reason: `${namesList} ${verb} getting excited!...`,
           timestamp: Date.now(),
           card: revealedCard,
@@ -511,13 +516,17 @@ function handlePyramidReveal(io: SocketIOServer, room: Room) {
         
         // Emit notification to non-matching players
         for (const playerId of nonMatchingPlayerIds) {
+          // Sum up all drink amounts from matching players in this row
+          const totalMatchDrinks = drinkAssignments
+            .filter(a => a.type === 'take' && matchingPlayerIdsInDrinkRow.includes(a.playerId))
+            .reduce((sum, a) => sum + a.amount, 0);
           emitDrinkEvent(io, gameState.roomId, {
             id: uuidv4(),
             type: 'excited', // Reusing 'excited' type for notification
             targetPlayerIds: [playerId],
             sourcePlayerId: matchingPlayerIdsInDrinkRow[0],
             sourcePlayerName: namesList,
-            amount: row.drinkMultiplier, // How many drinks the matcher(s) have to take
+            amount: totalMatchDrinks, // Actual total drinks the matchers have to take
             reason: `${namesList} matched in drink Row ${row.rowNumber}!`,
             timestamp: Date.now(),
             card: revealedCard,
