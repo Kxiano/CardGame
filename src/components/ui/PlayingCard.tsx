@@ -63,8 +63,8 @@ export function PlayingCard({
     playingCard.setAttribute('rank', getRankName(card.value));
     playingCard.setAttribute('suit', getSuitName(card.suit));
     playingCard.setAttribute('borderradius', '8');
-    playingCard.style.width = dimensions.width;
-    playingCard.style.height = dimensions.height;
+    playingCard.style.width = '100%';
+    playingCard.style.height = '100%';
     playingCard.style.display = 'block';
     
     container.appendChild(playingCard);
