@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.18",
-    "autoprefixer": "^10.4.23",
+    "autoprefixer": "^10.4.24",
     "eslint": "^9",
     "eslint-config-next": "16.1.0",
     "postcss": "^8.5.6",
