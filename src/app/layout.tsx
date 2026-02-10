@@ -45,6 +45,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <meta name="theme-color" content="#0a1f15" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
       <body className={inter.className}>
         <Script src="/cardmeister.min.js" strategy="beforeInteractive" />
         <Providers>
