@@ -3,10 +3,10 @@
    ========================================== */
 
 .main {
-    height: 100dvh;
-    /* Dynamic viewport height for mobile browsers */
     height: 100vh;
     /* Fallback for older browsers */
+    height: 100dvh;
+    /* Dynamic viewport height for mobile browsers — accounts for URL/control bars */
     display: flex;
     flex-direction: column;
     background:
